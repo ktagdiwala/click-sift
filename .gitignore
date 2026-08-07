@@ -1,0 +1,64 @@
+# ==========================================
+# Node / Frontend Dependencies & Builds
+# ==========================================
+node_modules/
+dist/
+dist-isolate/
+.next/
+.cache/
+.build/
+out/
+public/build/
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env*
+!.env.example
+
+# ==========================================
+# Node / JS logs / caches
+# ==========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ==========================================
+# Coverage / test output
+# ==========================================
+coverage/
+.nyc_output/
+jest-cache/
+
+# ==========================================
+# Rust / Tauri Build Artifacts
+# ==========================================
+src-tauri/target/
+src-tauri/gen/
+target/
+
+# ==========================================
+# Visual Studio / IDE files
+# ==========================================
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+bin/
+obj/
+
+# ==========================================
+# Archives / misc
+# ==========================================
+*.zip
+*.tar.gz
+*.7z
+*.bak
+*.tmp
+
