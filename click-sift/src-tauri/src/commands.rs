@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::command;
 
 #[command]
@@ -48,4 +48,80 @@ pub fn create_directories(target_dir: String, keep_dir: String, discard_dir: Str
     }
     
     Ok(())
+}
+
+#[command]
+pub fn get_image_files(target_dir: String) -> Result<Vec<String>, String> {
+    let path = Path::new(&target_dir);
+    
+    if !path.exists() || !path.is_dir() {
+        return Err("Invalid target directory".to_string());
+    }
+    
+    let mut images = Vec::new();
+    let supported_extensions = vec!["jpg", "jpeg", "png", "raw", "cr2", "crw"];
+    
+    match fs::read_dir(path) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                if let Ok(metadata) = entry.metadata() {
+                    if metadata.is_file() {
+                        if let Some(extension) = entry.path().extension() {
+                            if let Some(ext_str) = extension.to_str() {
+                                if supported_extensions.contains(&ext_str.to_lowercase().as_str()) {
+                                    if let Some(file_name) = entry.file_name().into_string().ok() {
+                                        images.push(file_name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => return Err(format!("Failed to read directory: {}", e)),
+    }
+    
+    images.sort();
+    Ok(images)
+}
+
+#[command]
+pub fn move_file(source: String, destination: String) -> Result<(), String> {
+    let source_path = Path::new(&source);
+    let dest_path = Path::new(&destination);
+    
+    if !source_path.exists() {
+        return Err("Source file does not exist".to_string());
+    }
+    
+    if let Some(parent) = dest_path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create destination directory: {}", e))?;
+        }
+    }
+    
+    fs::rename(&source_path, &dest_path)
+        .map_err(|e| format!("Failed to move file: {}", e))?;
+    
+    Ok(())
+}
+
+#[command]
+pub fn rename_file(file_path: String, new_name: String) -> Result<(), String> {
+    let path = Path::new(&file_path);
+    
+    if !path.exists() {
+        return Err("File does not exist".to_string());
+    }
+    
+    if let Some(parent) = path.parent() {
+        let new_path = parent.join(&new_name);
+        fs::rename(&path, &new_path)
+            .map_err(|e| format!("Failed to rename file: {}", e))?;
+        Ok(())
+    } else {
+        Err("Invalid file path".to_string())
+    }
 }

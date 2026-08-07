@@ -9,6 +9,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             validate_directory,
             create_directories,
+            get_image_files,
+            move_file,
+            rename_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
