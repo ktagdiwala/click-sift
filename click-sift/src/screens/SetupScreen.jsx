@@ -69,9 +69,9 @@ export default function SetupScreen({ onComplete }) {
         // Create directories
         try {
           await invoke('create_directories', {
-            target_dir: targetDir,
-            keep_dir: keepDir,
-            discard_dir: discardDir,
+            targetDir: targetDir,
+            keepDir: keepDir,
+            discardDir: discardDir,
           });
         } catch (e) {
           setError(`Failed to create directories: ${e}`);
