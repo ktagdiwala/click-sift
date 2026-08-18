@@ -124,7 +124,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				destination,
 			});
 
-			const newIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+			const newIndex = currentIndex < images.length - 1 ? currentIndex : 0;
 			const newImages = images.filter((_, i) => i !== currentIndex);
 			setImages(newImages);
 
@@ -151,7 +151,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				destination,
 			});
 
-			const newIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+			const newIndex = currentIndex < images.length - 1 ? currentIndex: 0;
 			const newImages = images.filter((_, i) => i !== currentIndex);
 			setImages(newImages);
 
