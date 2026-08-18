@@ -12,13 +12,18 @@ export default function App() {
     setCurrentScreen("sort");
   };
 
+  const handleBackToSetup = () => {
+    setCurrentScreen("setup");
+    setConfig(null);
+  };
+
   return (
     <div className="app">
       {currentScreen === "setup" && (
         <SetupScreen onComplete={handleSetupComplete} />
       )}
       {currentScreen === "sort" && config && (
-        <PhotoSortScreen config={config} />
+        <PhotoSortScreen config={config} onBackToSetup={handleBackToSetup} />
       )}
     </div>
   );
