@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use tauri::command;
 
 #[command]
@@ -69,8 +69,8 @@ pub fn get_image_files(target_dir: String) -> Result<Vec<String>, String> {
                         if let Some(extension) = entry.path().extension() {
                             if let Some(ext_str) = extension.to_str() {
                                 if supported_extensions.contains(&ext_str.to_lowercase().as_str()) {
-                                    if let Some(file_name) = entry.file_name().into_string().ok() {
-                                        images.push(file_name);
+                                    if let Ok(full_path) = entry.path().into_os_string().into_string() {
+                                        images.push(full_path);
                                     }
                                 }
                             }

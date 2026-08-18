@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import '../styles/PhotoSortScreen.css';
 
-export default function PhotoSortScreen({ config }) {
+export default function PhotoSortScreen({ config, onBackToSetup }) {
   const [images, setImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,10 @@ export default function PhotoSortScreen({ config }) {
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageLoaded, setImageLoaded] = useState(false);
+//   const [imageUrl, setImageUrl] = useState('');
   const imageRef = useRef(null);
+  const imageElementRef = useRef(null);
   const zoomPreviewRef = useRef(null);
 
   // Load images on mount
@@ -43,8 +46,11 @@ export default function PhotoSortScreen({ config }) {
   // Initialize rename mode
   useEffect(() => {
     if (images.length > 0) {
-      const currentFileName = images[currentIndex];
-      setNewFileName(currentFileName);
+      const currentFilePath = images[currentIndex];
+      const fileName = currentFilePath.split('\\').pop() || currentFilePath.split('/').pop();
+      setNewFileName(fileName);
+      setImageLoaded(false);
+      resetZoom();
     }
   }, [currentIndex, images]);
 
@@ -85,7 +91,7 @@ export default function PhotoSortScreen({ config }) {
   // Handle mouse wheel zoom
   useEffect(() => {
     const handleWheel = (e) => {
-      if (!imageRef.current || renameMode) return;
+      if (!imageRef.current || renameMode || !imageLoaded) return;
 
       e.preventDefault();
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
@@ -97,19 +103,21 @@ export default function PhotoSortScreen({ config }) {
       imageElement.addEventListener('wheel', handleWheel, { passive: false });
       return () => imageElement.removeEventListener('wheel', handleWheel);
     }
-  }, [renameMode]);
+  }, [renameMode, imageLoaded]);
 
-  const getCurrentFilePath = useCallback(() => {
+  const getFileName = useCallback(() => {
     if (images.length === 0) return '';
-    return `${config.targetDir}\\${images[currentIndex]}`;
-  }, [images, currentIndex, config.targetDir]);
+    const filePath = images[currentIndex];
+    return filePath.split('\\').pop() || filePath.split('/').pop();
+  }, [images, currentIndex]);
 
   const handleKeep = async () => {
     if (images.length === 0) return;
 
     try {
-      const source = getCurrentFilePath();
-      const destination = `${config.keepDir}\\${images[currentIndex]}`;
+      const source = images[currentIndex];
+      const fileName = getFileName();
+      const destination = `${config.keepDir}\\${fileName}`;
 
       await invoke('move_file', {
         source,
@@ -124,7 +132,6 @@ export default function PhotoSortScreen({ config }) {
         setError('All photos have been sorted!');
       } else {
         setCurrentIndex(newIndex >= newImages.length ? newImages.length - 1 : newIndex);
-        resetZoom();
       }
     } catch (e) {
       setError(`Failed to move file to keep: ${e}`);
@@ -135,8 +142,9 @@ export default function PhotoSortScreen({ config }) {
     if (images.length === 0) return;
 
     try {
-      const source = getCurrentFilePath();
-      const destination = `${config.discardDir}\\${images[currentIndex]}`;
+      const source = images[currentIndex];
+      const fileName = getFileName();
+      const destination = `${config.discardDir}\\${fileName}`;
 
       await invoke('move_file', {
         source,
@@ -151,7 +159,6 @@ export default function PhotoSortScreen({ config }) {
         setError('All photos have been sorted!');
       } else {
         setCurrentIndex(newIndex >= newImages.length ? newImages.length - 1 : newIndex);
-        resetZoom();
       }
     } catch (e) {
       setError(`Failed to move file to discard: ${e}`);
@@ -162,14 +169,12 @@ export default function PhotoSortScreen({ config }) {
     if (images.length === 0) return;
     const nextIndex = (currentIndex + 1) % images.length;
     setCurrentIndex(nextIndex);
-    resetZoom();
   };
 
   const handlePreviousPhoto = () => {
     if (images.length === 0) return;
     const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
     setCurrentIndex(prevIndex);
-    resetZoom();
   };
 
   const handleZoomIn = () => {
@@ -187,7 +192,7 @@ export default function PhotoSortScreen({ config }) {
   };
 
   const handleMouseDown = (e) => {
-    if (imageZoom > 1) {
+    if (imageZoom > 1 && imageLoaded) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
     }
@@ -195,8 +200,14 @@ export default function PhotoSortScreen({ config }) {
 
   const handleMouseMove = (e) => {
     if (isDragging && imageZoom > 1) {
-      setPanX(e.clientX - dragStart.x);
-      setPanY(e.clientY - dragStart.y);
+      const maxPanX = (imageElementRef.current?.offsetWidth || 0) * (imageZoom - 1) / 2;
+      const maxPanY = (imageElementRef.current?.offsetHeight || 0) * (imageZoom - 1) / 2;
+
+      const newPanX = Math.max(-maxPanX, Math.min(maxPanX, e.clientX - dragStart.x));
+      const newPanY = Math.max(-maxPanY, Math.min(maxPanY, e.clientY - dragStart.y));
+
+      setPanX(newPanX);
+      setPanY(newPanY);
     }
   };
 
@@ -209,20 +220,21 @@ export default function PhotoSortScreen({ config }) {
   };
 
   const handleRenameSave = async () => {
-    if (newFileName === images[currentIndex]) {
+    if (newFileName === getFileName()) {
       setRenameMode(false);
       return;
     }
 
     try {
-      const oldPath = getCurrentFilePath();
+      const oldPath = images[currentIndex];
       await invoke('rename_file', {
         filePath: oldPath,
         newName: newFileName,
       });
 
       const newImages = [...images];
-      newImages[currentIndex] = newFileName;
+      const dirPath = oldPath.substring(0, oldPath.lastIndexOf('\\') || oldPath.lastIndexOf('/'));
+      newImages[currentIndex] = `${dirPath}\\${newFileName}`;
       setImages(newImages);
       setRenameMode(false);
     } catch (e) {
@@ -232,7 +244,16 @@ export default function PhotoSortScreen({ config }) {
 
   const handleRenameCancel = () => {
     setRenameMode(false);
-    setNewFileName(images[currentIndex]);
+    setNewFileName(getFileName());
+  };
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = (e) => {
+    console.error('Image load error:', e, 'Path:', images[currentIndex]);
+    setError(`Failed to load image: ${getFileName()}`);
   };
 
   if (loading) {
@@ -259,77 +280,38 @@ export default function PhotoSortScreen({ config }) {
     );
   }
 
-  const currentFilePath = getCurrentFilePath();
+  const currentFilePath = images[currentIndex];
   const imageUrl = convertFileSrc(currentFilePath);
 
   return (
     <div className="photo-sort-screen">
-      {/* Header */}
-      <div className="photo-sort-header">
-        <div className="file-info">
-          {renameMode ? (
-            <div className="rename-input-group">
-              <input
-                type="text"
-                value={newFileName}
-                onChange={(e) => setNewFileName(e.target.value)}
-                className="rename-input"
-                autoFocus
-              />
-              <button className="rename-btn save" onClick={handleRenameSave}>
-                Save
-              </button>
-              <button className="rename-btn cancel" onClick={handleRenameCancel}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <div className="filename-display" onClick={handleRenameClick}>
-              <span className="filename">{images[currentIndex]}</span>
-              <span className="edit-hint">(Click to rename)</span>
-            </div>
-          )}
-        </div>
-
-        <div className="progress-indicator">
-          <span>{currentIndex + 1}</span>
-          <span>/</span>
-          <span>{images.length}</span>
-        </div>
-      </div>
-
       {/* Zoom Preview Strip */}
       <div className="zoom-preview-container">
         <div
           className="zoom-preview"
           ref={zoomPreviewRef}
           style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundPosition: `${(panX / imageRef.current?.offsetWidth) * 100}% ${(panY / imageRef.current?.offsetHeight) * 100}%`,
+            backgroundImage: imageLoaded ? `url(${imageUrl})` : 'none',
+            backgroundPosition: `${Math.max(0, Math.min(100, 50 + (panX / (imageElementRef.current?.offsetWidth || 1)) * 50))}% ${Math.max(0, Math.min(100, 50 + (panY / (imageElementRef.current?.offsetHeight || 1)) * 50))}%`,
           }}
         >
-          <div
-            className="zoom-preview-frame"
-            style={{
-              width: `${Math.min(100, (1 / imageZoom) * 100)}%`,
-              height: `${Math.min(100, (1 / imageZoom) * 100)}%`,
-              left: `${Math.max(0, Math.min(100 - (1 / imageZoom) * 100, ((-panX) / imageRef.current?.offsetWidth) * 100))}%`,
-              top: `${Math.max(0, Math.min(100 - (1 / imageZoom) * 100, ((-panY) / imageRef.current?.offsetHeight) * 100))}%`,
-            }}
-          />
+          {imageLoaded && (
+            <div
+              className="zoom-preview-frame"
+              style={{
+                width: `${Math.min(100, (1 / imageZoom) * 100)}%`,
+                height: `${Math.min(100, (1 / imageZoom) * 100)}%`,
+                left: `${Math.max(0, Math.min(100 - (1 / imageZoom) * 100, 50 - (panX / (imageElementRef.current?.offsetWidth || 1)) * 50 - (1 / imageZoom) * 50))}%`,
+                top: `${Math.max(0, Math.min(100 - (1 / imageZoom) * 100, 50 - (panY / (imageElementRef.current?.offsetHeight || 1)) * 50 - (1 / imageZoom) * 50))}%`,
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Main Image Viewer */}
-      <div className="image-viewer-container">
-        <button
-          className="nav-button prev-button"
-          onClick={handlePreviousPhoto}
-          title="Previous (← arrow key)"
-        >
-          ◀
-        </button>
-
+      {/* Main content area */}
+      <div className="main-content">
+        {/* Image Viewer Section */}
         <div
           className="image-display"
           ref={imageRef}
@@ -340,52 +322,122 @@ export default function PhotoSortScreen({ config }) {
           style={{ cursor: imageZoom > 1 ? 'grab' : 'default' }}
         >
           <img
+            ref={imageElementRef}
             src={imageUrl}
             alt="Current photo"
             className="photo"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
             style={{
               transform: `scale(${imageZoom}) translate(${panX}px, ${panY}px)`,
               cursor: imageZoom > 1 ? 'grabbing' : 'default',
             }}
           />
+
+          {/* Zoom Controls */}
+          <div className="zoom-controls">
+            <button onClick={handleZoomOut} title="Zoom Out (- key)">
+              −
+            </button>
+            <span className="zoom-level">{(imageZoom * 100).toFixed(0)}%</span>
+            <button onClick={handleZoomIn} title="Zoom In (+ key)">
+              +
+            </button>
+          </div>
         </div>
 
-        <button
-          className="nav-button next-button"
-          onClick={handleNextPhoto}
-          title="Next (→ arrow key)"
-        >
-          ▶
-        </button>
-      </div>
+        {/* Right Sidebar */}
+        <div className="right-sidebar">
+          {/* File Info Section */}
+          <div className="sidebar-section file-section">
+            <label className="section-label">Current File</label>
+            {renameMode ? (
+              <div className="rename-input-group">
+                <input
+                  type="text"
+                  value={newFileName}
+                  onChange={(e) => setNewFileName(e.target.value)}
+                  className="rename-input"
+                  autoFocus
+                />
+                <button className="rename-btn save" onClick={handleRenameSave}>
+                  Save
+                </button>
+                <button className="rename-btn cancel" onClick={handleRenameCancel}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="filename-display" onClick={handleRenameClick}>
+                <span className="filename">{getFileName()}</span>
+                <span className="edit-hint">Click to rename</span>
+              </div>
+            )}
+          </div>
 
-      {/* Action Buttons */}
-      <div className="action-buttons">
-        <button
-          className="btn btn-keep"
-          onClick={handleKeep}
-          title="Keep this photo (K key)"
-        >
-          KEEP
-        </button>
-        <button
-          className="btn btn-discard"
-          onClick={handleDiscard}
-          title="Discard this photo (D key)"
-        >
-          DELETE
-        </button>
-      </div>
+          {/* Progress Section */}
+          <div className="sidebar-section progress-section">
+            <label className="section-label">Progress</label>
+            <div className="progress-indicator">
+              <span className="progress-number">{currentIndex + 1}</span>
+              <span className="progress-separator">/</span>
+              <span className="progress-total">{images.length}</span>
+            </div>
+          </div>
 
-      {/* Zoom Controls */}
-      <div className="zoom-controls">
-        <button onClick={handleZoomOut} title="Zoom Out (- key)">
-          −
-        </button>
-        <span className="zoom-level">{(imageZoom * 100).toFixed(0)}%</span>
-        <button onClick={handleZoomIn} title="Zoom In (+ key)">
-          +
-        </button>
+          {/* Navigation Section */}
+          <div className="sidebar-section nav-section">
+            <label className="section-label">Navigate</label>
+            <div className="nav-buttons-vertical">
+              <button
+                className="nav-button prev-button"
+                onClick={handlePreviousPhoto}
+                title="Previous (← arrow key)"
+              >
+                ◀ Previous
+              </button>
+              <button
+                className="nav-button next-button"
+                onClick={handleNextPhoto}
+                title="Next (→ arrow key)"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons Section */}
+          <div className="sidebar-section action-section">
+            <label className="section-label">Action</label>
+            <div className="action-buttons-vertical">
+              <button
+                className="btn btn-keep"
+                onClick={handleKeep}
+                title="Keep this photo (K key)"
+              >
+                KEEP
+              </button>
+              <button
+                className="btn btn-discard"
+                onClick={handleDiscard}
+                title="Discard this photo (D key)"
+              >
+                DISCARD
+              </button>
+            </div>
+          </div>
+
+          {/* Back to Setup Section */}
+          <div className="sidebar-section back-section">
+            <button
+              className="btn btn-back"
+              onClick={onBackToSetup}
+              title="Return to setup screen"
+            >
+              ⟲ Back to Setup
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Error Message */}

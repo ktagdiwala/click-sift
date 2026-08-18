@@ -91,13 +91,13 @@ h1 {
 }
 
 .error-message {
-  padding: 12px;
+  padding: 0px 0px;
   background-color: #fee;
   border: 1px solid #fcc;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #c33;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  height: 10vh;
 }
 
 .btn {
