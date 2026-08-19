@@ -4,6 +4,9 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import '../styles/PhotoSortScreen.css';
 
 export default function PhotoSortScreen({ config, onBackToSetup }) {
+	const MAX_HISTORY_LIMIT = 500;
+	const [keptCount, setKeptCount] = useState(0);
+	const [discardedCount, setDiscardedCount] = useState(0);
 	const [images, setImages] = useState([]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
@@ -20,12 +23,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const imageRef = useRef(null);
 	const imageElementRef = useRef(null);
 	const zoomPreviewRef = useRef(null);
+	const [history, setHistory] = useState([]);  // Stores the last keep/delete actions for undoing
+	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
 
 	// Load images on mount
 	useEffect(() => {
 		const loadImages = async () => {
 			try {
 				setLoading(true);
+				setKeptCount(0);      // Reset counters for new directory
+				setDiscardedCount(0); // Reset counters for new directory
 				const imageList = await invoke('get_image_files', {
 					targetDir: config.targetDir,
 				});
@@ -59,6 +66,25 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const handleKeyDown = (e) => {
 			if (renameMode) return; // Don't process shortcuts while renaming
 
+			const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+			// Undo: Ctrl+Z or Cmd+Z
+			if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+				e.preventDefault();
+				handleUndo();
+				return;
+			}
+
+			// Redo: Ctrl+Y or Cmd+Shift+Z
+			if (
+				(isCmdOrCtrl && e.key.toLowerCase() === 'y') ||
+				(isCmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z')
+			) {
+				e.preventDefault();
+				handleRedo();
+				return;
+			}
+
 			switch (e.key.toLowerCase()) {
 				case 'k':
 					handleKeep();
@@ -86,7 +112,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [currentIndex, images, renameMode]);
+	}, [currentIndex, images, renameMode, history, redoStack]);
 
 	// Handle mouse wheel zoom
 	useEffect(() => {
@@ -124,6 +150,19 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				destination,
 			});
 
+			// Track action in history stack & clear redo stack
+			const action = {
+				type: 'keep',
+				source,
+				destination,
+				originalIndex: currentIndex,
+			};
+			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
+			setRedoStack([]);
+
+			// Update counters
+			setKeptCount((prev) => prev + 1);
+
 			const newIndex = currentIndex < images.length - 1 ? currentIndex : 0;
 			const newImages = images.filter((_, i) => i !== currentIndex);
 			setImages(newImages);
@@ -151,7 +190,20 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				destination,
 			});
 
-			const newIndex = currentIndex < images.length - 1 ? currentIndex: 0;
+			// Track action in history stack & clear redo stack
+			const action = {
+				type: 'discard',
+				source,
+				destination,
+				originalIndex: currentIndex,
+			};
+			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
+			setRedoStack([]);
+
+			// update counters
+			setDiscardedCount((prev) => prev + 1);
+
+			const newIndex = currentIndex < images.length - 1 ? currentIndex : 0;
 			const newImages = images.filter((_, i) => i !== currentIndex);
 			setImages(newImages);
 
@@ -162,6 +214,77 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			}
 		} catch (e) {
 			setError(`Failed to move file to discard: ${e}`);
+		}
+	};
+
+	const handleUndo = async () => {
+		if (history.length === 0) return;
+
+		const lastAction = history[history.length - 1];
+
+		try {
+			// Move file back from keep/discard folder to original folder
+			await invoke('move_file', {
+				source: lastAction.destination,
+				destination: lastAction.source,
+			});
+
+			// Re-insert file at its original position in the array
+			const updatedImages = [...images];
+			updatedImages.splice(lastAction.originalIndex, 0, lastAction.source);
+			setImages(updatedImages);
+			setCurrentIndex(lastAction.originalIndex);
+
+			// Decrement the corresponding counter
+			if (lastAction.type === 'keep') {
+				setKeptCount((prev) => Math.max(0, prev - 1));
+			} else {
+				setDiscardedCount((prev) => Math.max(0, prev - 1));
+			}
+
+			// Pop from history, push to redo
+			setHistory((prev) => prev.slice(0, -1));
+			setRedoStack((prev) => [...prev, lastAction]);
+			setError(''); // Clear error/completion banner if returning from finished screen
+		} catch (e) {
+			setError(`Failed to undo action: ${e}`);
+		}
+	};
+
+	const handleRedo = async () => {
+		if (redoStack.length === 0) return;
+
+		const nextAction = redoStack[redoStack.length - 1];
+
+		try {
+			// Re-apply move action
+			await invoke('move_file', {
+				source: nextAction.source,
+				destination: nextAction.destination,
+			});
+
+			// Remove file from list again
+			const updatedImages = images.filter((path) => path !== nextAction.source);
+			setImages(updatedImages);
+
+			if (nextAction.type === 'keep') {
+				setKeptCount((prev) => prev + 1);
+			} else {
+				setDiscardedCount((prev) => prev + 1);
+			}
+
+			// Safeguard index position
+			if (updatedImages.length === 0) {
+				setError('All photos have been sorted!');
+			} else {
+				setCurrentIndex((prev) => (prev >= updatedImages.length ? updatedImages.length - 1 : prev));
+			}
+
+			// Pop from redo, push to history
+			setRedoStack((prev) => prev.slice(0, -1));
+			setHistory((prev) => [...prev, nextAction].slice(-MAX_HISTORY_LIMIT));
+		} catch (e) {
+			setError(`Failed to redo action: ${e}`);
 		}
 	};
 
@@ -443,6 +566,29 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 								title="Discard this photo (D key)"
 							>
 								DISCARD
+							</button>
+						</div>
+					</div>
+
+					{/* Undo / Redo Section */}
+					<div className="sidebar-section history-section">
+						<label className="section-label">History</label>
+						<div className="history-buttons-vertical">
+							<button
+								className="btn btn-history"
+								onClick={handleUndo}
+								disabled={history.length === 0}
+								title="Undo last action (Ctrl+Z)"
+							>
+								↶ Undo ({history.length})
+							</button>
+							<button
+								className="btn btn-history"
+								onClick={handleRedo}
+								disabled={redoStack.length === 0}
+								title="Redo action (Ctrl+Y)"
+							>
+								↷ Redo ({redoStack.length})
 							</button>
 						</div>
 					</div>
