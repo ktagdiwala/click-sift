@@ -12,6 +12,7 @@ fn read_image_bytes(file_path: String) -> Result<Vec<u8>, String> {
 
 fn main() {
     tauri::Builder::default()
+		.plugin(tauri_plugin_dialog::init()) // <-- ADD THIS LINE HERE
         .invoke_handler(tauri::generate_handler![
             validate_directory,
             create_directories,
