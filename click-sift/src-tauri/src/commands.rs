@@ -59,7 +59,7 @@ pub fn get_image_files(target_dir: String) -> Result<Vec<String>, String> {
     }
     
     let mut images = Vec::new();
-    let supported_extensions = vec!["jpg", "jpeg", "png", "raw", "cr2", "crw"];
+    let supported_extensions = vec!["jpg", "jpeg", "png", "raw", "cr2", "crw", "CR3", "cr3"];
     
     match fs::read_dir(path) {
         Ok(entries) => {

@@ -3,6 +3,41 @@ import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import '../styles/PhotoSortScreen.css';
 
+const groupImagePaths = (filePaths) => {
+	const groups = new Map();
+
+	filePaths.forEach((filePath) => {
+		// Extract filename and directory separator
+		const separator = filePath.includes('\\') ? '\\' : '/';
+		const fileName = filePath.split(separator).pop();
+		const lastDotIndex = fileName.lastIndexOf('.');
+		if (lastDotIndex === -1) return;
+
+		const baseName = fileName.substring(0, lastDotIndex);
+		const ext = fileName.substring(lastDotIndex + 1).toLowerCase();
+		const dirPath = filePath.substring(0, filePath.lastIndexOf(separator));
+
+		if (!groups.has(baseName)) {
+			groups.set(baseName, {
+				id: baseName,
+				baseName: baseName,
+				dirPath: dirPath,
+				rawPath: null,    // Full path to .CR3
+				jpegPath: null,   // Full path to .JPG/.JPEG
+			});
+		}
+
+		const group = groups.get(baseName);
+		if (ext === 'cr3') {
+			group.rawPath = filePath;
+		} else {
+			group.jpegPath = filePath;
+		}
+	});
+
+	return Array.from(groups.values());
+};
+
 export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const MAX_HISTORY_LIMIT = 500;
 	const [keptCount, setKeptCount] = useState(0);
@@ -34,10 +69,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				setLoading(true);
 				setKeptCount(0);      // Reset counters for new directory
 				setDiscardedCount(0); // Reset counters for new directory
+
 				const imageList = await invoke('get_image_files', {
 					targetDir: config.targetDir,
 				});
-				setImages(imageList);
+
+				// Group RAW and JPEG paths together
+				const groupedImages = groupImagePaths(imageList);
+				setImages(groupedImages);
+				// setImages(imageList);
+
 				if (imageList.length === 0) {
 					setError('No supported image files found in the target directory.');
 				}
@@ -74,10 +115,25 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	};
 
 	// Initialize rename mode
+	// useEffect(() => {
+	// 	if (images.length > 0) {
+	// 		const currentFilePath = images[currentIndex];
+	// 		const fileName = currentFilePath.split('\\').pop() || currentFilePath.split('/').pop();
+	// 		setNewFileName(fileName);
+	// 		setImageLoaded(false);
+	// 		resetZoom();
+	// 	}
+	// }, [currentIndex, images]);
+	// Initialize rename mode
 	useEffect(() => {
-		if (images.length > 0) {
-			const currentFilePath = images[currentIndex];
-			const fileName = currentFilePath.split('\\').pop() || currentFilePath.split('/').pop();
+		if (images.length > 0 && images[currentIndex]) {
+			const item = images[currentIndex];
+
+			// Safely extract filename whether item is an object or string
+			const fileName = typeof item === 'string'
+				? (item.split('\\').pop() || item.split('/').pop())
+				: item.baseName;
+
 			setNewFileName(fileName);
 			setImageLoaded(false);
 			resetZoom();
@@ -181,32 +237,58 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		}
 	}, [imageZoom, panX, panY, renameMode, imageLoaded]);
 
-	const getFileName = useCallback(() => {
-		if (images.length === 0) return '';
-		const filePath = images[currentIndex];
-		return filePath.split('\\').pop() || filePath.split('/').pop();
-	}, [images, currentIndex]);
+	// const getFileName = useCallback(() => {
+	// 	if (images.length === 0) return '';
+	// 	const filePath = images[currentIndex];
+	// 	return filePath.split('\\').pop() || filePath.split('/').pop();
+	// }, [images, currentIndex]);
 
 	const handleKeep = async () => {
 		if (images.length === 0) return;
 
 		try {
-			const source = images[currentIndex];
-			const fileName = getFileName();
-			const destination = `${config.keepDir}\\${fileName}`;
+			// const source = images[currentIndex];
+			// const fileName = getFileName();
+			// const destination = `${config.keepDir}\\${fileName}`;
 
-			await invoke('move_file', {
-				source,
-				destination,
-			});
+			// await invoke('move_file', {
+			// 	source,
+			// 	destination,
+			// });
 
-			// Track action in history stack & clear redo stack
+			// // Track action in history stack & clear redo stack
+			// const action = {
+			// 	type: 'keep',
+			// 	source,
+			// 	destination,
+			// 	originalIndex: currentIndex,
+			// };
+
+			// Updated for grouped jpeg/raw
+			const item = images[currentIndex];
+			const separator = item.dirPath?.includes('/') ? '/' : '\\';
+			const filesToMove = [item.jpegPath, item.rawPath].filter(Boolean);
+			const movedFiles = [];
+
+			for (const filePath of filesToMove) {
+				const fileNameWithExt = filePath.split(/[/\\]/).pop();
+				const destination = `${config.keepDir}${separator}${fileNameWithExt}`;
+
+				await invoke('move_file', {
+					source: filePath,
+					destination,
+				});
+
+				movedFiles.push({ source: filePath, destination });
+			}
+
 			const action = {
 				type: 'keep',
-				source,
-				destination,
+				item,
+				movedFiles,
 				originalIndex: currentIndex,
 			};
+
 			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
 			setRedoStack([]);
 
@@ -231,22 +313,48 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		if (images.length === 0) return;
 
 		try {
-			const source = images[currentIndex];
-			const fileName = getFileName();
-			const destination = `${config.discardDir}\\${fileName}`;
+			// const source = images[currentIndex];
+			// const fileName = getFileName();
+			// const destination = `${config.discardDir}\\${fileName}`;
 
-			await invoke('move_file', {
-				source,
-				destination,
-			});
+			// await invoke('move_file', {
+			// 	source,
+			// 	destination,
+			// });
 
-			// Track action in history stack & clear redo stack
+			// // Track action in history stack & clear redo stack
+			// const action = {
+			// 	type: 'discard',
+			// 	source,
+			// 	destination,
+			// 	originalIndex: currentIndex,
+			// };
+
+			// Updated for grouped jpeg/raw
+			const item = images[currentIndex];
+			const separator = item.dirPath?.includes('/') ? '/' : '\\';
+			const filesToMove = [item.jpegPath, item.rawPath].filter(Boolean);
+			const movedFiles = [];
+
+			for (const filePath of filesToMove) {
+				const fileNameWithExt = filePath.split(/[/\\]/).pop();
+				const destination = `${config.discardDir}${separator}${fileNameWithExt}`;
+
+				await invoke('move_file', {
+					source: filePath,
+					destination,
+				});
+
+				movedFiles.push({ source: filePath, destination });
+			}
+
 			const action = {
 				type: 'discard',
-				source,
-				destination,
+				item,
+				movedFiles,
 				originalIndex: currentIndex,
 			};
+
 			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
 			setRedoStack([]);
 
@@ -273,15 +381,30 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const lastAction = history[history.length - 1];
 
 		try {
-			// Move file back from keep/discard folder to original folder
-			await invoke('move_file', {
-				source: lastAction.destination,
-				destination: lastAction.source,
-			});
+			// // Move file back from keep/discard folder to original folder
+			// await invoke('move_file', {
+			// 	source: lastAction.destination,
+			// 	destination: lastAction.source,
+			// });
 
-			// Re-insert file at its original position in the array
+			// // Re-insert file at its original position in the array
+			// const updatedImages = [...images];
+			// updatedImages.splice(lastAction.originalIndex, 0, lastAction.source);
+
+			// Updated for grouped jpeg/raw
+			const filesToUndo = lastAction.movedFiles || [{ source: lastAction.source, destination: lastAction.destination }];
+
+			for (const file of filesToUndo) {
+				await invoke('move_file', {
+					source: file.destination,
+					destination: file.source,
+				});
+			}
+
 			const updatedImages = [...images];
-			updatedImages.splice(lastAction.originalIndex, 0, lastAction.source);
+			const itemToRestore = lastAction.item || lastAction.source;
+			updatedImages.splice(lastAction.originalIndex, 0, itemToRestore);
+
 			setImages(updatedImages);
 			setCurrentIndex(lastAction.originalIndex);
 
@@ -307,14 +430,28 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const nextAction = redoStack[redoStack.length - 1];
 
 		try {
-			// Re-apply move action
-			await invoke('move_file', {
-				source: nextAction.source,
-				destination: nextAction.destination,
-			});
+			// // Re-apply move action
+			// await invoke('move_file', {
+			// 	source: nextAction.source,
+			// 	destination: nextAction.destination,
+			// });
 
-			// Remove file from list again
-			const updatedImages = images.filter((path) => path !== nextAction.source);
+			// // Remove file from list again
+			// const updatedImages = images.filter((path) => path !== nextAction.source);
+
+			// Updated for grouped jpeg/raw
+			const filesToRedo = nextAction.movedFiles || [{ source: nextAction.source, destination: nextAction.destination }];
+
+			for (const file of filesToRedo) {
+				await invoke('move_file', {
+					source: file.source,
+					destination: file.destination,
+				});
+			}
+
+			const targetItem = nextAction.item || nextAction.source;
+			const updatedImages = images.filter((img) => img !== targetItem);
+
 			setImages(updatedImages);
 
 			if (nextAction.type === 'keep') {
@@ -425,26 +562,74 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		setRenameMode(true);
 	};
 
+	// const handleRenameSave = async () => {
+	// 	if (newFileName === getFileName()) {
+	// 		setRenameMode(false);
+	// 		return;
+	// 	}
+
+	// 	try {
+	// 		const oldPath = images[currentIndex];
+	// 		await invoke('rename_file', {
+	// 			filePath: oldPath,
+	// 			newName: newFileName,
+	// 		});
+
+	// 		const newImages = [...images];
+	// 		const dirPath = oldPath.substring(0, oldPath.lastIndexOf('\\') || oldPath.lastIndexOf('/'));
+	// 		newImages[currentIndex] = `${dirPath}\\${newFileName}`;
+	// 		setImages(newImages);
+	// 		setRenameMode(false);
+	// 	} catch (e) {
+	// 		setError(`Failed to rename file: ${e}`);
+	// 	}
+	// };
 	const handleRenameSave = async () => {
-		if (newFileName === getFileName()) {
+		if (!currentPhoto || newFileName === currentPhoto.baseName) {
 			setRenameMode(false);
 			return;
 		}
 
 		try {
-			const oldPath = images[currentIndex];
-			await invoke('rename_file', {
-				filePath: oldPath,
-				newName: newFileName,
-			});
+			const separator = currentPhoto.dirPath.includes('\\') ? '\\' : '/';
 
+			// 1. Rename JPEG version if it exists
+			let updatedJpegPath = currentPhoto.jpegPath;
+			if (currentPhoto.jpegPath) {
+				const oldExt = currentPhoto.jpegPath.split('.').pop();
+				const newJpegName = `${newFileName}.${oldExt}`;
+				await invoke('rename_file', {
+					filePath: currentPhoto.jpegPath,
+					newName: newJpegName,
+				});
+				updatedJpegPath = `${currentPhoto.dirPath}${separator}${newJpegName}`;
+			}
+
+			// 2. Rename RAW version if it exists
+			let updatedRawPath = currentPhoto.rawPath;
+			if (currentPhoto.rawPath) {
+				const oldExt = currentPhoto.rawPath.split('.').pop();
+				const newRawName = `${newFileName}.${oldExt}`;
+				await invoke('rename_file', {
+					filePath: currentPhoto.rawPath,
+					newName: newRawName,
+				});
+				updatedRawPath = `${currentPhoto.dirPath}${separator}${newRawName}`;
+			}
+
+			// 3. Update React state object
 			const newImages = [...images];
-			const dirPath = oldPath.substring(0, oldPath.lastIndexOf('\\') || oldPath.lastIndexOf('/'));
-			newImages[currentIndex] = `${dirPath}\\${newFileName}`;
+			newImages[currentIndex] = {
+				...currentPhoto,
+				baseName: newFileName,
+				jpegPath: updatedJpegPath,
+				rawPath: updatedRawPath,
+			};
+
 			setImages(newImages);
 			setRenameMode(false);
 		} catch (e) {
-			setError(`Failed to rename file: ${e}`);
+			setError(`Failed to rename file group: ${e}`);
 		}
 	};
 
@@ -462,7 +647,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	};
 
 	const handleImageError = (e) => {
-		console.error('Image load error:', e, 'Path:', images[currentIndex]);
+		// console.error('Image load error:', e, 'Path:', images[currentIndex]);
+		console.error('Image load error:', e, 'Path:', displayPath);
 		setError(`Failed to load image: ${getFileName()}`);
 	};
 
@@ -473,22 +659,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			</div>
 		);
 	}
-
-	//   if (error && images.length === 0) {
-	//     return (
-	//       <div className="photo-sort-screen">
-	//         <div className="error-message">{error}</div>
-	//       </div>
-	//     );
-	//   }
-
-	//   if (images.length === 0) {
-	//     return (
-	//       <div className="photo-sort-screen">
-	//         <div className="error-message">No images to sort.</div>
-	//       </div>
-	//     );
-	//   }
 
 	// Replace the empty images check near the top of your component:
 	if (images.length === 0 && !loading) {
@@ -510,8 +680,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	}
 
 
-	const currentFilePath = images[currentIndex];
-	const imageUrl = convertFileSrc(currentFilePath);
+	// const currentFilePath = images[currentIndex];
+	// const imageUrl = convertFileSrc(currentFilePath);
+	// Current photo object ({ baseName, dirPath, rawPath, jpegPath })
+	const currentPhoto = images[currentIndex];
+
+	// Display JPEG if present, otherwise fall back to RAW path
+	const displayPath = currentPhoto?.jpegPath || currentPhoto?.rawPath || '';
+	const imageUrl = displayPath ? convertFileSrc(displayPath) : '';
+
+	// Helper to get current display base name
+	const getFileName = () => currentPhoto?.baseName || '';
+
 
 	return (
 		<div className="photo-sort-screen">
