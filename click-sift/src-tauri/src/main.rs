@@ -19,6 +19,8 @@ fn main() {
             get_image_files,
             move_file,
             rename_file,
+            get_image_rating,
+			set_image_rating,
             read_image_bytes
         ])
         .run(tauri::generate_context!())

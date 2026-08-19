@@ -62,6 +62,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
 	const [stripHeight, setStripHeight] = useState(100);
 
+
 	// Load images on mount
 	useEffect(() => {
 		const loadImages = async () => {
@@ -76,7 +77,24 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 				// Group RAW and JPEG paths together
 				const groupedImages = groupImagePaths(imageList);
-				setImages(groupedImages);
+
+				// Fetch initial ratings from EXIF metadata for each image
+				const imagesWithRatings = await Promise.all(
+					groupedImages.map(async (group) => {
+						const targetPath = group.jpegPath || group.rawPath;
+						if (!targetPath) return { ...group, rating: 0 };
+
+						try {
+							const rating = await invoke('get_image_rating', { filePath: targetPath });
+							return { ...group, rating: rating || 0 };
+						} catch (e) {
+							console.error('Failed to read rating for', targetPath, e);
+							return { ...group, rating: 0 };
+						}
+					})
+				);
+				setImages(imagesWithRatings);
+				// setImages(groupedImages);
 				// setImages(imageList);
 
 				if (imageList.length === 0) {
@@ -114,16 +132,33 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		window.addEventListener('mouseup', onMouseUp);
 	};
 
-	// Initialize rename mode
-	// useEffect(() => {
-	// 	if (images.length > 0) {
-	// 		const currentFilePath = images[currentIndex];
-	// 		const fileName = currentFilePath.split('\\').pop() || currentFilePath.split('/').pop();
-	// 		setNewFileName(fileName);
-	// 		setImageLoaded(false);
-	// 		resetZoom();
-	// 	}
-	// }, [currentIndex, images]);
+	// Rating handler function
+	const handleSetRating = async (newRating) => {
+		if (currentIndex < 0 || currentIndex >= images.length) return;
+	
+		const item = images[currentIndex];
+		const currentRating = item.rating || 0;
+		const targetRating = currentRating === newRating ? 0 : newRating;
+	
+		// Optimistically update React UI state
+		const updatedImages = [...images];
+		updatedImages[currentIndex] = { ...item, rating: targetRating };
+		setImages(updatedImages);
+	
+		// Persist updated rating to both JPEG and RAW files on disk
+		try {
+			const filesToUpdate = [item.jpegPath, item.rawPath].filter(Boolean);
+			for (const filePath of filesToUpdate) {
+				await invoke('set_image_rating', {
+					filePath,
+					rating: targetRating,
+				});
+			}
+		} catch (e) {
+			setError(`Failed to save rating to file metadata: ${e}`);
+		}
+	};
+
 	// Initialize rename mode
 	useEffect(() => {
 		if (images.length > 0 && images[currentIndex]) {
@@ -162,6 +197,10 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				e.preventDefault();
 				handleRedo();
 				return;
+			}
+
+			if (['0', '1', '2', '3', '4', '5'].includes(e.key)) {
+				handleSetRating(parseInt(e.key, 10));
 			}
 
 			switch (e.key.toLowerCase()) {
@@ -237,33 +276,10 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		}
 	}, [imageZoom, panX, panY, renameMode, imageLoaded]);
 
-	// const getFileName = useCallback(() => {
-	// 	if (images.length === 0) return '';
-	// 	const filePath = images[currentIndex];
-	// 	return filePath.split('\\').pop() || filePath.split('/').pop();
-	// }, [images, currentIndex]);
-
 	const handleKeep = async () => {
 		if (images.length === 0) return;
 
 		try {
-			// const source = images[currentIndex];
-			// const fileName = getFileName();
-			// const destination = `${config.keepDir}\\${fileName}`;
-
-			// await invoke('move_file', {
-			// 	source,
-			// 	destination,
-			// });
-
-			// // Track action in history stack & clear redo stack
-			// const action = {
-			// 	type: 'keep',
-			// 	source,
-			// 	destination,
-			// 	originalIndex: currentIndex,
-			// };
-
 			// Updated for grouped jpeg/raw
 			const item = images[currentIndex];
 			const separator = item.dirPath?.includes('/') ? '/' : '\\';
@@ -282,6 +298,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				movedFiles.push({ source: filePath, destination });
 			}
 
+			// Track action in history stack & clear redo stack
 			const action = {
 				type: 'keep',
 				item,
@@ -313,23 +330,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		if (images.length === 0) return;
 
 		try {
-			// const source = images[currentIndex];
-			// const fileName = getFileName();
-			// const destination = `${config.discardDir}\\${fileName}`;
-
-			// await invoke('move_file', {
-			// 	source,
-			// 	destination,
-			// });
-
-			// // Track action in history stack & clear redo stack
-			// const action = {
-			// 	type: 'discard',
-			// 	source,
-			// 	destination,
-			// 	originalIndex: currentIndex,
-			// };
-
 			// Updated for grouped jpeg/raw
 			const item = images[currentIndex];
 			const separator = item.dirPath?.includes('/') ? '/' : '\\';
@@ -348,6 +348,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				movedFiles.push({ source: filePath, destination });
 			}
 
+			// Track action in history stack & clear redo stack
 			const action = {
 				type: 'discard',
 				item,
@@ -430,19 +431,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const nextAction = redoStack[redoStack.length - 1];
 
 		try {
-			// // Re-apply move action
-			// await invoke('move_file', {
-			// 	source: nextAction.source,
-			// 	destination: nextAction.destination,
-			// });
-
-			// // Remove file from list again
-			// const updatedImages = images.filter((path) => path !== nextAction.source);
-
 			// Updated for grouped jpeg/raw
 			const filesToRedo = nextAction.movedFiles || [{ source: nextAction.source, destination: nextAction.destination }];
 
 			for (const file of filesToRedo) {
+				// Re-apply move action
 				await invoke('move_file', {
 					source: file.source,
 					destination: file.destination,
@@ -450,6 +443,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			}
 
 			const targetItem = nextAction.item || nextAction.source;
+			// Remove file from list again
 			const updatedImages = images.filter((img) => img !== targetItem);
 
 			setImages(updatedImages);
@@ -562,28 +556,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		setRenameMode(true);
 	};
 
-	// const handleRenameSave = async () => {
-	// 	if (newFileName === getFileName()) {
-	// 		setRenameMode(false);
-	// 		return;
-	// 	}
-
-	// 	try {
-	// 		const oldPath = images[currentIndex];
-	// 		await invoke('rename_file', {
-	// 			filePath: oldPath,
-	// 			newName: newFileName,
-	// 		});
-
-	// 		const newImages = [...images];
-	// 		const dirPath = oldPath.substring(0, oldPath.lastIndexOf('\\') || oldPath.lastIndexOf('/'));
-	// 		newImages[currentIndex] = `${dirPath}\\${newFileName}`;
-	// 		setImages(newImages);
-	// 		setRenameMode(false);
-	// 	} catch (e) {
-	// 		setError(`Failed to rename file: ${e}`);
-	// 	}
-	// };
 	const handleRenameSave = async () => {
 		if (!currentPhoto || newFileName === currentPhoto.baseName) {
 			setRenameMode(false);
@@ -680,8 +652,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	}
 
 
-	// const currentFilePath = images[currentIndex];
-	// const imageUrl = convertFileSrc(currentFilePath);
 	// Current photo object ({ baseName, dirPath, rawPath, jpegPath })
 	const currentPhoto = images[currentIndex];
 
@@ -692,6 +662,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Helper to get current display base name
 	const getFileName = () => currentPhoto?.baseName || '';
 
+	// Helper to get current star rating
+	const currentRating = currentPhoto?.rating || 0;
 
 	return (
 		<div className="photo-sort-screen">
@@ -804,6 +776,27 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						<span className="progress-number">{currentIndex + 1}</span>
 						<span className="progress-separator">/</span>
 						<span className="progress-total">{images.length}</span>
+					</div>
+				</div>
+
+				{/* Rating Section */}
+				<div className="sidebar-section rating-section">
+					<label className="section-label">Rating (Keys 1-5, 0 to clear)</label>
+					<div className="star-rating">
+						{[1, 2, 3, 4, 5].map((star) => {
+							const currentRating = currentPhoto?.rating || 0;
+							return (
+								<button
+									key={star}
+									type="button"
+									className={`star-btn ${star <= currentRating ? 'filled' : 'empty'}`}
+									onClick={() => handleSetRating(star)}
+									title={`Set rating to ${star} star${star > 1 ? 's' : ''}`}
+								>
+									{star <= currentRating ? '★' : '☆'}
+								</button>
+							);
+						})}
 					</div>
 				</div>
 

@@ -502,3 +502,34 @@
 	opacity: 0.4;
 	cursor: not-allowed;
 }
+
+.star-rating {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.star-btn {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    padding: 0 2px;
+    transition: transform 0.1s ease, color 0.1s ease;
+}
+
+.star-btn:hover {
+    transform: scale(1.2);
+}
+
+.star-btn.filled {
+    color: #f59e0b; /* Amber / Gold */
+}
+
+.star-btn.empty {
+    color: #4b5563; /* Dim Gray */
+}
+
+.star-btn.empty:hover {
+    color: #fcd34d;
+}
