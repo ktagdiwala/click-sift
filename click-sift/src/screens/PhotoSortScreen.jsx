@@ -61,6 +61,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [history, setHistory] = useState([]);  // Stores the last keep/delete actions for undoing
 	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
 	const [stripHeight, setStripHeight] = useState(100);
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
 
 
 	// Load images on mount
@@ -645,24 +646,24 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		);
 	}
 
-	// Replace the empty images check near the top of your component:
-	if (images.length === 0 && !loading) {
-		return (
-			<div className="photo-sort-screen completion-screen">
-				<div className="completion-card">
-					<h2>All Done! 🎉</h2>
-					<p className="completion-message">{error || 'All photos in this folder have been sorted.'}</p>
+	// // Replace the empty images check near the top of your component:
+	// if (images.length === 0 && !loading) {
+	// 	return (
+	// 		<div className="photo-sort-screen completion-screen">
+	// 			<div className="completion-card">
+	// 				<h2>All Done! 🎉</h2>
+	// 				<p className="completion-message">{error || 'All photos in this folder have been sorted.'}</p>
 
-					<button
-						className="btn btn-back-primary"
-						onClick={onBackToSetup}
-					>
-						⟲ SORT ANOTHER FOLDER
-					</button>
-				</div>
-			</div>
-		);
-	}
+	// 				<button
+	// 					className="btn btn-back-primary"
+	// 					onClick={onBackToSetup}
+	// 				>
+	// 					⟲ SORT ANOTHER FOLDER
+	// 				</button>
+	// 			</div>
+	// 		</div>
+	// 	);
+	// }
 
 
 	// Current photo object ({ baseName, dirPath, rawPath, jpegPath })
@@ -677,6 +678,20 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 	// Helper to get current star rating
 	const currentRating = currentPhoto?.rating || 0;
+
+	const handleBackToSetup = (e) => {
+		if (e) e.preventDefault();
+		setShowConfirmModal(true);
+	};
+
+	const handleConfirmBack = () => {
+		setShowConfirmModal(false);
+		onBackToSetup();
+	};
+
+	const handleCancelBack = () => {
+		setShowConfirmModal(false);
+	};
 
 	return (
 		<div className="photo-sort-screen">
@@ -714,41 +729,55 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						onMouseMove={handleMouseMove}
 						onMouseUp={handleMouseUp}
 						onMouseLeave={handleMouseUp}
-						// onWheel={handleWheel} // <-- ADD THIS LINE
 						style={{ cursor: imageZoom > 1 ? 'grab' : 'default' }}
 					>
-						<img
-							ref={imageElementRef}
-							src={imageUrl}
-							alt="Current photo"
-							className="photo"
-							onLoad={handleImageLoad}
-							onError={handleImageError}
-							style={{
-								transform: `translate(${panX}px, ${panY}px) scale(${imageZoom})`,
-								cursor: imageZoom > 1 ? 'grabbing' : 'default',
-								pointerEvents: 'none' // Prevents browser native image-ghosting drag
-							}}
-						/>
+						{images.length > 0 ? (
+							<>
+								<img
+									ref={imageElementRef}
+									src={imageUrl}
+									alt="Current photo"
+									className="photo"
+									onLoad={handleImageLoad}
+									onError={handleImageError}
+									style={{
+										transform: `translate(${panX}px, ${panY}px) scale(${imageZoom})`,
+										cursor: imageZoom > 1 ? 'grabbing' : 'default',
+										pointerEvents: 'none' // Prevents browser native image-ghosting drag
+									}}
+								/>
 
-						{/* Zoom Controls */}
-						<div className="zoom-controls">
-							<button onClick={handleZoomOut} title="Zoom Out (- key)">
-								−
-							</button>
-							<span className="zoom-level">{(imageZoom * 100).toFixed(0)}%</span>
-							<button onClick={handleZoomIn} title="Zoom In (+ key)">
-								+
-							</button>
-							<button
-								onClick={resetZoom}
-								title="Reset Zoom / Pan (0 key)"
-								disabled={imageZoom === 1 && panX === 0 && panY === 0}
-								className="reset-zoom-btn"
-							>
-								↺
-							</button>
-						</div>
+								{/* Zoom Controls */}
+								<div className="zoom-controls">
+									<button onClick={handleZoomOut} title="Zoom Out (- key)">
+										−
+									</button>
+									<span className="zoom-level">{(imageZoom * 100).toFixed(0)}%</span>
+									<button onClick={handleZoomIn} title="Zoom In (+ key)">
+										+
+									</button>
+									<button
+										onClick={resetZoom}
+										title="Reset Zoom / Pan (0 key)"
+										disabled={imageZoom === 1 && panX === 0 && panY === 0}
+										className="reset-zoom-btn"
+									>
+										↺
+									</button>
+								</div>
+							</>
+						) : (
+							<div className="completion-card">
+								<h2>All Done! 🎉</h2>
+								<p className="completion-message">All photos in this folder have been sorted.</p>
+								<button
+									className="btn btn-back-primary"
+									onClick={(e) => handleBackToSetup(e)}
+								>
+									⟲ SORT ANOTHER FOLDER
+								</button>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
@@ -775,7 +804,10 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 							</button>
 						</div>
 					) : (
-						<div className="filename-display" onClick={handleRenameClick}>
+						<div
+							className={`filename-display ${images.length === 0 ? 'disabled' : ''}`}
+							onClick={images.length > 0 ? handleRenameClick : undefined}
+						>
 							<div className="filename-header">
 								<span className="filename">{getFileName()}</span>
 								{currentPhoto?.rawPath && (
@@ -784,7 +816,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									</span>
 								)}
 							</div>
-							<span className="edit-hint">Click to rename</span>
+							{images.length > 0 && <span className="edit-hint">Click to rename</span>}
 						</div>
 					)}
 				</div>
@@ -793,7 +825,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				<div className="sidebar-section progress-section">
 					<label className="section-label">Progress</label>
 					<div className="progress-indicator">
-						<span className="progress-number">{currentIndex + 1}</span>
+						<span className="progress-number">{images.length > 0 ? currentIndex + 1 : 0}</span>
 						<span className="progress-separator">/</span>
 						<span className="progress-total">{images.length}</span>
 					</div>
@@ -811,6 +843,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									type="button"
 									className={`star-btn ${star <= currentRating ? 'filled' : 'empty'}`}
 									onClick={() => handleSetRating(star)}
+									disabled={images.length === 0}
 									title={`Set rating to ${star} star${star > 1 ? 's' : ''}`}
 								>
 									{star <= currentRating ? '★' : '☆'}
@@ -826,6 +859,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					<div className="nav-buttons-vertical">
 						<button
 							className="nav-button prev-button"
+							disabled={images.length === 0}
 							onClick={handlePreviousPhoto}
 							title="Previous (← arrow key)"
 						>
@@ -833,6 +867,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						</button>
 						<button
 							className="nav-button next-button"
+							disabled={images.length === 0}
 							onClick={handleNextPhoto}
 							title="Next (→ arrow key)"
 						>
@@ -848,6 +883,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						<button
 							className="btn btn-keep"
 							onClick={handleKeep}
+							disabled={images.length === 0}
 							title="Keep this photo (K key)"
 						>
 							KEEP
@@ -855,6 +891,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						<button
 							className="btn btn-discard"
 							onClick={handleDiscard}
+							disabled={images.length === 0}
 							title="Discard this photo (D key)"
 						>
 							DISCARD
@@ -889,7 +926,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				<div className="sidebar-section back-section">
 					<button
 						className="btn btn-back"
-						onClick={onBackToSetup}
+						onClick={(e) => handleBackToSetup(e)}
 						title="Return to setup screen"
 					>
 						⟲ Back to Setup
@@ -907,6 +944,29 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			{error === 'All photos have been sorted!' && (
 				<div className="completion-banner">{error}</div>
 			)}
+
+			{/* Confirmation Modal */}
+			{showConfirmModal && (
+				<div className="ps-modal-backdrop" onClick={handleCancelBack}>
+					<div className="ps-modal-box" onClick={(e) => e.stopPropagation()}>
+						<h3 className="ps-modal-title">Return to Setup?</h3>
+						<p className="ps-modal-text">
+							{history.length > 0 || redoStack.length > 0
+								? "Are you sure you want to go back to setup? Your undo/redo history for this session will be lost."
+								: "Are you sure you want to return to the setup screen?"}
+						</p>
+						<div className="ps-modal-actions">
+							<button type="button" className="ps-btn-cancel" onClick={handleCancelBack}>
+								Cancel
+							</button>
+							<button type="button" className="ps-btn-confirm" onClick={handleConfirmBack}>
+								Confirm
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 		</div>
 	);
 }

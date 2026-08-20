@@ -183,6 +183,16 @@
   background-color: #3d3d3d;
 }
 
+.filename-display.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.filename-display.disabled .edit-hint {
+    display: none;
+}
+
 .filename {
   font-size: 13px;
   font-weight: 500;
@@ -459,6 +469,20 @@
   }
 }
 
+/* Generic disabled styling for buttons in the sidebar */
+.right-sidebar button:disabled,
+.nav-button:disabled,
+.btn-keep:disabled,
+.btn-discard:disabled,
+.star-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+    transform: none !important;
+    filter: grayscale(80%);
+}
+
 .completion-screen {
 	display: flex;
 	justify-content: center;
@@ -552,4 +576,82 @@
 
 .star-btn.empty:hover {
     color: #fcd34d;
+}
+
+/* Ensure star buttons retain readable structure when disabled */
+.star-btn:disabled {
+    background: transparent;
+    color: #666666;
+}
+
+/* Isolated Back to Setup Confirmation Modal */
+.ps-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+}
+
+.ps-modal-box {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+
+.ps-modal-title {
+    margin: 0 0 12px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.ps-modal-text {
+    margin: 0 0 20px 0;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    line-height: 1.4;
+}
+
+.ps-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.ps-btn-cancel {
+    background-color: #475569;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.ps-btn-cancel:hover {
+    background-color: #64748b;
+}
+
+.ps-btn-confirm {
+    background-color: #dc2626;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.ps-btn-confirm:hover {
+    background-color: #ef4444;
 }
