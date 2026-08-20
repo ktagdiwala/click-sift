@@ -178,7 +178,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Handle keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e) => {
-			if (renameMode) return; // Don't process shortcuts while renaming
+			if (renameMode) {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					handleRenameSave();
+				} else if (e.key === 'Escape') {
+					e.preventDefault();
+					handleRenameCancel();
+				}
+				return; // Don't process other global shortcuts while renaming
+			}
 
 			const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
@@ -226,6 +235,10 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				case 'escape':
 					resetZoom();
 					break;
+				case 'r':
+					e.preventDefault();
+					handleRenameClick();
+					break;
 				default:
 					break;
 			}
@@ -233,7 +246,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [currentIndex, images, renameMode, history, redoStack]);
+	}, [currentIndex, images, renameMode, history, redoStack, newFileName]);
 
 
 	// Handle mouse wheel zoom
