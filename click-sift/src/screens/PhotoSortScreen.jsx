@@ -135,16 +135,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Rating handler function
 	const handleSetRating = async (newRating) => {
 		if (currentIndex < 0 || currentIndex >= images.length) return;
-	
+
 		const item = images[currentIndex];
 		const currentRating = item.rating || 0;
 		const targetRating = currentRating === newRating ? 0 : newRating;
-	
+
 		// Optimistically update React UI state
 		const updatedImages = [...images];
 		updatedImages[currentIndex] = { ...item, rating: targetRating };
 		setImages(updatedImages);
-	
+
 		// Persist updated rating to both JPEG and RAW files on disk
 		try {
 			const filesToUpdate = [item.jpegPath, item.rawPath].filter(Boolean);
@@ -763,7 +763,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						</div>
 					) : (
 						<div className="filename-display" onClick={handleRenameClick}>
-							<span className="filename">{getFileName()}</span>
+							<div className="filename-header">
+								<span className="filename">{getFileName()}</span>
+								{currentPhoto?.rawPath && (
+									<span className="raw-badge" title="RAW file detected for this photo">
+										[has RAW]
+									</span>
+								)}
+							</div>
 							<span className="edit-hint">Click to rename</span>
 						</div>
 					)}
