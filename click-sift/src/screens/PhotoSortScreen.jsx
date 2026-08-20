@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import Histogram from '../components/Histogram';
 import '../styles/PhotoSortScreen.css';
 
 const groupImagePaths = (filePaths) => {
@@ -851,6 +852,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 							);
 						})}
 					</div>
+				</div>
+
+				{/* Histogram Section */}
+				<div className="sidebar-section histogram-section">
+					<label className="section-label">Histogram</label>
+					{images.length > 0 && imageUrl ? (
+						<Histogram src={imageUrl} />
+					) : (
+						<div className="histogram-placeholder">No Image</div>
+					)}
 				</div>
 
 				{/* Navigation Section */}
