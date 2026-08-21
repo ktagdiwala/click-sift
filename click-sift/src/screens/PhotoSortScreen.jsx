@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
+import RatingControls from '../components/RatingControls';
 import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
@@ -698,26 +699,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				/>
 
 				{/* Rating Section */}
-				<div className="sidebar-section rating-section">
-					<label className="section-label">Rating (Keys 1-5, 0 to clear)</label>
-					<div className="star-rating">
-						{[1, 2, 3, 4, 5].map((star) => {
-							const currentRating = currentPhoto?.rating || 0;
-							return (
-								<button
-									key={star}
-									type="button"
-									className={`star-btn ${star <= currentRating ? 'filled' : 'empty'}`}
-									onClick={() => handleSetRating(star)}
-									disabled={images.length === 0}
-									title={`Set rating to ${star} star${star > 1 ? 's' : ''}`}
-								>
-									{star <= currentRating ? '★' : '☆'}
-								</button>
-							);
-						})}
-					</div>
-				</div>
+				<RatingControls
+					currentRating={currentPhoto?.rating || 0}
+					disabled={images.length === 0}
+					onSetRating={handleSetRating}
+				/>
 
 				{/* Histogram Section */}
 				<div className="sidebar-section histogram-section">
