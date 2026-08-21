@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import FileInfo from '../components/FileInfo';
 import Histogram from '../components/Histogram';
 import '../styles/PhotoSortScreen.css';
 
@@ -47,8 +48,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
-	const [renameMode, setRenameMode] = useState(false);
-	const [newFileName, setNewFileName] = useState('');
+	// const [renameMode, setRenameMode] = useState(false);
+	// const [newFileName, setNewFileName] = useState('');
 	const [imageZoom, setImageZoom] = useState(1);
 	const [panX, setPanX] = useState(0);
 	const [panY, setPanY] = useState(0);
@@ -63,6 +64,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
 	const [stripHeight, setStripHeight] = useState(100);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const fileInfoRef = useRef(null);
 
 
 	// Load images on mount
@@ -164,14 +166,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Initialize rename mode
 	useEffect(() => {
 		if (images.length > 0 && images[currentIndex]) {
-			const item = images[currentIndex];
+			// const item = images[currentIndex];
 
-			// Safely extract filename whether item is an object or string
-			const fileName = typeof item === 'string'
-				? (item.split('\\').pop() || item.split('/').pop())
-				: item.baseName;
+			// // Safely extract filename whether item is an object or string
+			// const fileName = typeof item === 'string'
+			// 	? (item.split('\\').pop() || item.split('/').pop())
+			// 	: item.baseName;
 
-			setNewFileName(fileName);
+			// setNewFileName(fileName);
 			setImageLoaded(false);
 			resetZoom();
 		}
@@ -180,15 +182,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Handle keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e) => {
-			if (renameMode) {
-				if (e.key === 'Enter') {
-					e.preventDefault();
-					handleRenameSave();
-				} else if (e.key === 'Escape') {
-					e.preventDefault();
-					handleRenameCancel();
-				}
-				return; // Don't process other global shortcuts while renaming
+			// if (renameMode) {
+			// 	if (e.key === 'Enter') {
+			// 		e.preventDefault();
+			// 		handleRenameSave();
+			// 	} else if (e.key === 'Escape') {
+			// 		e.preventDefault();
+			// 		handleRenameCancel();
+			// 	}
+			// 	return; // Don't process other global shortcuts while renaming
+			// }
+			if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+				return;
 			}
 
 			const isCmdOrCtrl = e.metaKey || e.ctrlKey;
@@ -239,7 +244,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					break;
 				case 'r':
 					e.preventDefault();
-					handleRenameClick();
+					// handleRenameClick();
+					fileInfoRef.current?.openRename();
 					break;
 				default:
 					break;
@@ -248,7 +254,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [currentIndex, images, renameMode, history, redoStack, newFileName]);
+	}, [currentIndex, images, history, redoStack]);
 
 
 	// Handle mouse wheel zoom
@@ -289,7 +295,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			imageElement.addEventListener('wheel', handleWheel, { passive: false });
 			return () => imageElement.removeEventListener('wheel', handleWheel);
 		}
-	}, [imageZoom, panX, panY, renameMode, imageLoaded]);
+	}, [imageZoom, panX, panY, imageLoaded]);
 
 	const handleKeep = async () => {
 		if (images.length === 0) return;
@@ -567,63 +573,95 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		setIsDragging(false);
 	};
 
-	const handleRenameClick = () => {
-		setRenameMode(true);
-	};
+	// const handleRenameClick = () => {
+	// 	setRenameMode(true);
+	// };
 
-	const handleRenameSave = async () => {
-		if (!currentPhoto || newFileName === currentPhoto.baseName) {
-			setRenameMode(false);
-			return;
-		}
+	// const handleRenameSave = async () => {
+	// 	if (!currentPhoto || newFileName === currentPhoto.baseName) {
+	// 		setRenameMode(false);
+	// 		return;
+	// 	}
+
+	// 	try {
+	// 		const separator = currentPhoto.dirPath.includes('\\') ? '\\' : '/';
+
+	// 		// 1. Rename JPEG version if it exists
+	// 		let updatedJpegPath = currentPhoto.jpegPath;
+	// 		if (currentPhoto.jpegPath) {
+	// 			const oldExt = currentPhoto.jpegPath.split('.').pop();
+	// 			const newJpegName = `${newFileName}.${oldExt}`;
+	// 			await invoke('rename_file', {
+	// 				filePath: currentPhoto.jpegPath,
+	// 				newName: newJpegName,
+	// 			});
+	// 			updatedJpegPath = `${currentPhoto.dirPath}${separator}${newJpegName}`;
+	// 		}
+
+	// 		// 2. Rename RAW version if it exists
+	// 		let updatedRawPath = currentPhoto.rawPath;
+	// 		if (currentPhoto.rawPath) {
+	// 			const oldExt = currentPhoto.rawPath.split('.').pop();
+	// 			const newRawName = `${newFileName}.${oldExt}`;
+	// 			await invoke('rename_file', {
+	// 				filePath: currentPhoto.rawPath,
+	// 				newName: newRawName,
+	// 			});
+	// 			updatedRawPath = `${currentPhoto.dirPath}${separator}${newRawName}`;
+	// 		}
+
+	// 		// 3. Update React state object
+	// 		const newImages = [...images];
+	// 		newImages[currentIndex] = {
+	// 			...currentPhoto,
+	// 			baseName: newFileName,
+	// 			jpegPath: updatedJpegPath,
+	// 			rawPath: updatedRawPath,
+	// 		};
+
+	// 		setImages(newImages);
+	// 		setRenameMode(false);
+	// 	} catch (e) {
+	// 		setError(`Failed to rename file group: ${e}`);
+	// 	}
+	// };
+	const handleRenameSave = async (updatedName) => {
+		if (!currentPhoto) return;
 
 		try {
 			const separator = currentPhoto.dirPath.includes('\\') ? '\\' : '/';
+			const updatedPaths = {};
 
-			// 1. Rename JPEG version if it exists
-			let updatedJpegPath = currentPhoto.jpegPath;
-			if (currentPhoto.jpegPath) {
-				const oldExt = currentPhoto.jpegPath.split('.').pop();
-				const newJpegName = `${newFileName}.${oldExt}`;
-				await invoke('rename_file', {
-					filePath: currentPhoto.jpegPath,
-					newName: newJpegName,
-				});
-				updatedJpegPath = `${currentPhoto.dirPath}${separator}${newJpegName}`;
+			for (const { key, path } of [
+				{ key: 'jpegPath', path: currentPhoto.jpegPath },
+				{ key: 'rawPath', path: currentPhoto.rawPath },
+			]) {
+				if (!path) continue;
+				const ext = path.split('.').pop();
+				const newName = `${updatedName}.${ext}`;
+
+				await invoke('rename_file', { filePath: path, newName });
+				updatedPaths[key] = `${currentPhoto.dirPath}${separator}${newName}`;
 			}
 
-			// 2. Rename RAW version if it exists
-			let updatedRawPath = currentPhoto.rawPath;
-			if (currentPhoto.rawPath) {
-				const oldExt = currentPhoto.rawPath.split('.').pop();
-				const newRawName = `${newFileName}.${oldExt}`;
-				await invoke('rename_file', {
-					filePath: currentPhoto.rawPath,
-					newName: newRawName,
-				});
-				updatedRawPath = `${currentPhoto.dirPath}${separator}${newRawName}`;
-			}
-
-			// 3. Update React state object
-			const newImages = [...images];
-			newImages[currentIndex] = {
-				...currentPhoto,
-				baseName: newFileName,
-				jpegPath: updatedJpegPath,
-				rawPath: updatedRawPath,
-			};
-
-			setImages(newImages);
-			setRenameMode(false);
+			setImages((prev) => {
+				const next = [...prev];
+				next[currentIndex] = {
+					...currentPhoto,
+					baseName: updatedName,
+					...updatedPaths,
+				};
+				return next;
+			});
 		} catch (e) {
 			setError(`Failed to rename file group: ${e}`);
 		}
 	};
 
-	const handleRenameCancel = () => {
-		setRenameMode(false);
-		setNewFileName(getFileName());
-	};
+	// const handleRenameCancel = () => {
+	// 	setRenameMode(false);
+	// 	setNewFileName(getFileName());
+	// };
 
 	const handleImageLoad = (e) => {
 		setNaturalSize({
@@ -766,7 +804,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			{/* Right Sidebar */}
 			<div className="right-sidebar">
 				{/* File Info Section */}
-				<div className="sidebar-section file-section">
+				{/* <div className="sidebar-section file-section">
 					<label className="section-label">Current File</label>
 					{renameMode ? (
 						<div className="rename-input-group">
@@ -800,7 +838,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 							{images.length > 0 && <span className="edit-hint">Click to rename</span>}
 						</div>
 					)}
-				</div>
+				</div> */}
+				<FileInfo
+					ref={fileInfoRef}
+					currentPhoto={currentPhoto}
+					disabled={images.length === 0}
+					onRenameSave={handleRenameSave}
+					// onRenameCancel={handleRenameCancel}
+				/>
 
 				{/* Progress & Navigation Section */}
 				<div className="sidebar-section progress-section">
