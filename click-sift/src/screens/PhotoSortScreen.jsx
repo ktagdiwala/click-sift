@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import FileInfo from '../components/FileInfo';
+import Navigation from '../components/Navigation';
 import Histogram from '../components/Histogram';
 import '../styles/PhotoSortScreen.css';
 
@@ -723,7 +724,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				/>
 
 				{/* Progress & Navigation Section */}
-				<div className="sidebar-section progress-section">
+				{/* <div className="sidebar-section progress-section">
 					<div className="progress-bar-capsule">
 						<button
 							type="button"
@@ -751,7 +752,13 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 							▶
 						</button>
 					</div>
-				</div>
+				</div> */}
+				<Navigation
+					currentIndex={currentIndex}
+					totalImages={images.length}
+					onPrevious={handlePreviousPhoto}
+					onNext={handleNextPhoto}
+				/>
 
 				{/* Rating Section */}
 				<div className="sidebar-section rating-section">
