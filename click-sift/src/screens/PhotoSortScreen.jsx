@@ -784,7 +784,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				</div>
 			</div>
 
-
 			{/* Error Message */}
 			{error && error !== 'All photos have been sorted!' && (
 				<div className="error-banner">{error}</div>
@@ -796,26 +795,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			)}
 
 			{/* Confirmation Modal */}
-			{/* {showConfirmModal && (
-				<div className="ps-modal-backdrop" onClick={handleCancelBack}>
-					<div className="ps-modal-box" onClick={(e) => e.stopPropagation()}>
-						<h3 className="ps-modal-title">Return to Setup?</h3>
-						<p className="ps-modal-text">
-							{history.length > 0 || redoStack.length > 0
-								? "Are you sure you want to go back to setup? Your undo/redo history for this session will be lost."
-								: "Are you sure you want to return to the setup screen?"}
-						</p>
-						<div className="ps-modal-actions">
-							<button type="button" className="ps-btn-cancel" onClick={handleCancelBack}>
-								Cancel
-							</button>
-							<button type="button" className="ps-btn-confirm" onClick={handleConfirmBack}>
-								Confirm
-							</button>
-						</div>
-					</div>
-				</div>
-			)} */}
 			<ConfirmModal
 				isOpen={showConfirmModal}
 				hasHistory={history.length > 0 || redoStack.length > 0}
