@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 
 // Components
 import ZoomStrip from '../components/ZoomStrip';
+import ZoomControls from '../components/ZoomControls';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
 import RatingControls from '../components/RatingControls';
@@ -390,36 +391,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 								/>
 
 								{/* Zoom Controls */}
-								<div className="zoom-controls">
-									<button onClick={handleZoomOut} title="Zoom Out (- key)">
-										−
-									</button>
-									<span className="zoom-level">{(imageZoom * 100).toFixed(0)}%</span>
-									<button onClick={handleZoomIn} title="Zoom In (+ key)">
-										+
-									</button>
-									<button
-										onClick={resetZoom}
-										title="Reset Zoom / Pan (0 key)"
-										disabled={imageZoom === 1 && panX === 0 && panY === 0}
-										className="reset-zoom-btn"
-									>
-										↺
-									</button>
-									{/* Lock/Keep Zoom Toggle */}
-									<button
-										type="button"
-										className={`zoom-toggle-btn ${keepZoomOnNav ? 'active' : ''}`}
-										onClick={() => setKeepZoomOnNav((prev) => !prev)}
-										title={
-											keepZoomOnNav
-												? 'Zoom level is locked across photo changes (Click to unlock)'
-												: 'Zoom level resets on photo change (Click to lock zoom)'
-										}
-									>
-										{keepZoomOnNav ? '🔒' : '🔓'}
-									</button>
-								</div>
+								<ZoomControls
+									imageZoom={imageZoom}
+									panX={panX}
+									panY={panY}
+									keepZoomOnNav={keepZoomOnNav}
+									onZoomIn={handleZoomIn}
+									onZoomOut={handleZoomOut}
+									onResetZoom={resetZoom}
+									onToggleKeepZoom={() => setKeepZoomOnNav((prev) => !prev)}
+								/>
 							</>
 						) : (
 							<div className="completion-card">
