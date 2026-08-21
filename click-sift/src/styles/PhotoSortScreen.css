@@ -129,6 +129,35 @@
   text-align: center;
 }
 
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.zoom-toggle-btn {
+    background: rgba(0, 0, 0, 0.6);
+    color: #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Active state styling when zoom persistence is turned on */
+.zoom-toggle-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
 /* Right Sidebar */
 .right-sidebar {
   width: 280px;

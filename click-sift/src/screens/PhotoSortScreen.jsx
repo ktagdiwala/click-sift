@@ -13,7 +13,7 @@ import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
 
 // Utils
-import {groupImagePaths, getClampedPan} from '../utils/imageUtils'
+import { groupImagePaths, getClampedPan } from '../utils/imageUtils'
 
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
@@ -23,15 +23,12 @@ import { useImageZoomPan } from '../hooks/useImageZoomPan';
 import '../styles/PhotoSortScreen.css';
 
 export default function PhotoSortScreen({ config, onBackToSetup }) {
-	const MAX_HISTORY_LIMIT = 500;
 	const [keptCount, setKeptCount] = useState(0);
 	const [discardedCount, setDiscardedCount] = useState(0);
 	const [images, setImages] = useState([]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
-	const [isDragging, setIsDragging] = useState(false);
-	const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 	const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
 	const [imageLoaded, setImageLoaded] = useState(false);
 	const imageRef = useRef(null);
@@ -39,28 +36,31 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const zoomPreviewRef = useRef(null);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
+	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
+	const currentPhotoPath = images[currentIndex]?.jpegPath || images[currentIndex]?.rawPath;
+	const prevPhotoPathRef = useRef(currentPhotoPath);
 
 	// Custom Hooks
-    const {
-        handleKeep,
-        handleDiscard,
-        handleUndo,
-        handleRedo,
-        history,
-        redoStack,
-    } = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
+	const {
+		handleKeep,
+		handleDiscard,
+		handleUndo,
+		handleRedo,
+		history,
+		redoStack,
+	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
 
 	const {
-        imageZoom,
-        panX,
-        panY,
-        handleZoomIn,
-        handleZoomOut,
-        resetZoom,
-        handleMouseDown,
-        handleMouseMove,
-        handleMouseUp,
-    } = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
+		imageZoom,
+		panX,
+		panY,
+		handleZoomIn,
+		handleZoomOut,
+		resetZoom,
+		handleMouseDown,
+		handleMouseMove,
+		handleMouseUp,
+	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
 
 	// Load images on mount
 	useEffect(() => {
@@ -136,9 +136,12 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 	// Reset zoom when switching to a new image
 	useEffect(() => {
-		if (images.length > 0 && images[currentIndex]) {
+		if (currentPhotoPath && currentPhotoPath !== prevPhotoPathRef.current) {
 			setImageLoaded(false);
-			resetZoom();
+			if (!keepZoomOnNav) {
+				resetZoom();
+			}
+			prevPhotoPathRef.current = currentPhotoPath;
 		}
 	}, [currentIndex, images]);
 
@@ -198,6 +201,9 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				case 'r':
 					e.preventDefault();
 					fileInfoRef.current?.openRename();
+					break;
+				case 'l':
+					setKeepZoomOnNav((prev) => !prev);
 					break;
 				default:
 					break;
@@ -399,6 +405,19 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 										className="reset-zoom-btn"
 									>
 										↺
+									</button>
+									{/* Lock/Keep Zoom Toggle */}
+									<button
+										type="button"
+										className={`zoom-toggle-btn ${keepZoomOnNav ? 'active' : ''}`}
+										onClick={() => setKeepZoomOnNav((prev) => !prev)}
+										title={
+											keepZoomOnNav
+												? 'Zoom level is locked across photo changes (Click to unlock)'
+												: 'Zoom level resets on photo change (Click to lock zoom)'
+										}
+									>
+										{keepZoomOnNav ? '🔒' : '🔓'}
 									</button>
 								</div>
 							</>
