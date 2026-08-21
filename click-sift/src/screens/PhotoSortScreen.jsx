@@ -19,6 +19,7 @@ import { groupImagePaths, getClampedPan } from '../utils/imageUtils'
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
 import { useImageZoomPan } from '../hooks/useImageZoomPan';
+import { useShortcuts } from '../hooks/useShortcuts';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
@@ -146,76 +147,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		}
 	}, [currentIndex, images]);
 
-	// Handle keyboard shortcuts
-	useEffect(() => {
-		const handleKeyDown = (e) => {
-			if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
-				return;
-			}
-
-			const isCmdOrCtrl = e.metaKey || e.ctrlKey;
-
-			// Undo: Ctrl+Z or Cmd+Z
-			if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-				e.preventDefault();
-				handleUndo();
-				return;
-			}
-
-			// Redo: Ctrl+Y or Cmd+Shift+Z
-			if (
-				(isCmdOrCtrl && e.key.toLowerCase() === 'y') ||
-				(isCmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z')
-			) {
-				e.preventDefault();
-				handleRedo();
-				return;
-			}
-
-			if (['0', '1', '2', '3', '4', '5'].includes(e.key)) {
-				handleSetRating(parseInt(e.key, 10));
-			}
-
-			switch (e.key.toLowerCase()) {
-				case 'k':
-					handleKeep();
-					break;
-				case 'd':
-					handleDiscard();
-					break;
-				case 'arrowright':
-					handleNextPhoto();
-					break;
-				case 'arrowleft':
-					handlePreviousPhoto();
-					break;
-				case '+':
-				case '=':
-					handleZoomIn();
-					break;
-				case '-':
-					handleZoomOut();
-					break;
-				case 'escape':
-					resetZoom();
-					break;
-				case 'r':
-					e.preventDefault();
-					fileInfoRef.current?.openRename();
-					break;
-				case 'l':
-					setKeepZoomOnNav((prev) => !prev);
-					break;
-				default:
-					break;
-			}
-		};
-
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [currentIndex, images, history, redoStack]);
-
-
 	// Handle mouse wheel zoom
 	useEffect(() => {
 		const handleWheel = (e) => {
@@ -300,6 +231,22 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			setError(`Failed to rename file group: ${e}`);
 		}
 	};
+
+	// Keyboard shortcuts hook
+    useShortcuts({
+        onUndo: handleUndo,
+        onRedo: handleRedo,
+        onSetRating: handleSetRating,
+        onKeep: handleKeep,
+        onDiscard: handleDiscard,
+        onNext: () => setCurrentIndex(i => (i + 1) % images.length),
+        onPrevious: () => setCurrentIndex(i => (i === 0 ? images.length - 1 : i - 1)),
+        onZoomIn: handleZoomIn,
+        onZoomOut: handleZoomOut,
+        onResetZoom: resetZoom,
+        onOpenRename: () => fileInfoRef.current?.openRename(),
+        onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
+    }, [currentIndex, images, history, redoStack]);
 
 	const handleImageLoad = (e) => {
 		setNaturalSize({
