@@ -14,22 +14,19 @@ import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
 
 // Utils
-import { groupImagePaths, getClampedPan } from '../utils/imageUtils'
+import { getClampedPan } from '../utils/imageUtils'
 
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
 import { useImageZoomPan } from '../hooks/useImageZoomPan';
 import { useShortcuts } from '../hooks/useShortcuts';
+import { useImageLoader } from '../hooks/useImageLoader';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
 
 export default function PhotoSortScreen({ config, onBackToSetup }) {
-	const [keptCount, setKeptCount] = useState(0);
-	const [discardedCount, setDiscardedCount] = useState(0);
-	const [images, setImages] = useState([]);
 	const [currentIndex, setCurrentIndex] = useState(0);
-	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
 	const [imageLoaded, setImageLoaded] = useState(false);
@@ -39,19 +36,17 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
-	const currentPhotoPath = images[currentIndex]?.jpegPath || images[currentIndex]?.rawPath;
-	const prevPhotoPathRef = useRef(currentPhotoPath);
 
 	// Custom Hooks
-	const {
-		handleKeep,
-		handleDiscard,
-		handleUndo,
-		handleRedo,
-		history,
-		redoStack,
-	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
 
+	// Data loading hook
+	const {
+		images,
+		setImages,
+		loading
+	} = useImageLoader(config.targetDir, setError);
+
+	// Image zoom and pan hook
 	const {
 		imageZoom,
 		panX,
@@ -64,50 +59,19 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		handleMouseUp,
 	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
 
-	// Load images on mount
-	useEffect(() => {
-		const loadImages = async () => {
-			try {
-				setLoading(true);
-				setKeptCount(0);      // Reset counters for new directory
-				setDiscardedCount(0); // Reset counters for new directory
+	// Photo actions hook
+	const {
+		handleKeep,
+		handleDiscard,
+		handleUndo,
+		handleRedo,
+		history,
+		redoStack,
+	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
 
-				const imageList = await invoke('get_image_files', {
-					targetDir: config.targetDir,
-				});
-
-				// Group RAW and JPEG paths together
-				const groupedImages = groupImagePaths(imageList);
-
-				// Fetch initial ratings from EXIF metadata for each image
-				const imagesWithRatings = await Promise.all(
-					groupedImages.map(async (group) => {
-						const targetPath = group.jpegPath || group.rawPath;
-						if (!targetPath) return { ...group, rating: 0 };
-
-						try {
-							const rating = await invoke('get_image_rating', { filePath: targetPath });
-							return { ...group, rating: rating || 0 };
-						} catch (e) {
-							console.error('Failed to read rating for', targetPath, e);
-							return { ...group, rating: 0 };
-						}
-					})
-				);
-				setImages(imagesWithRatings);
-
-				if (imageList.length === 0) {
-					setError('No supported image files found in the target directory.');
-				}
-			} catch (e) {
-				setError(`Failed to load images: ${e}`);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		loadImages();
-	}, [config.targetDir]);
+	// Derive paths after images are returned from the useImageLoader hook
+	const currentPhotoPath = images[currentIndex]?.jpegPath || images[currentIndex]?.rawPath;
+	const prevPhotoPathRef = useRef(currentPhotoPath);
 
 	// Rating handler function
 	const handleSetRating = async (newRating) => {
@@ -233,20 +197,20 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	};
 
 	// Keyboard shortcuts hook
-    useShortcuts({
-        onUndo: handleUndo,
-        onRedo: handleRedo,
-        onSetRating: handleSetRating,
-        onKeep: handleKeep,
-        onDiscard: handleDiscard,
-        onNext: () => setCurrentIndex(i => (i + 1) % images.length),
-        onPrevious: () => setCurrentIndex(i => (i === 0 ? images.length - 1 : i - 1)),
-        onZoomIn: handleZoomIn,
-        onZoomOut: handleZoomOut,
-        onResetZoom: resetZoom,
-        onOpenRename: () => fileInfoRef.current?.openRename(),
-        onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
-    }, [currentIndex, images, history, redoStack]);
+	useShortcuts({
+		onUndo: handleUndo,
+		onRedo: handleRedo,
+		onSetRating: handleSetRating,
+		onKeep: handleKeep,
+		onDiscard: handleDiscard,
+		onNext: () => setCurrentIndex(i => (i + 1) % images.length),
+		onPrevious: () => setCurrentIndex(i => (i === 0 ? images.length - 1 : i - 1)),
+		onZoomIn: handleZoomIn,
+		onZoomOut: handleZoomOut,
+		onResetZoom: resetZoom,
+		onOpenRename: () => fileInfoRef.current?.openRename(),
+		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
+	}, [currentIndex, images, history, redoStack]);
 
 	const handleImageLoad = (e) => {
 		setNaturalSize({
