@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
-import { convertFileSrc } from '@tauri-apps/api/core';
 
 // Components
 import ZoomStrip from '../components/ZoomStrip';
@@ -11,6 +10,9 @@ import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
+
+// Utils
+import { getImageUrl, getFileName } from '../utils/imageUtils';
 
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
@@ -68,7 +70,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Rating and renaming hooks
 	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
 	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
-	
+
 	// Photo actions hook
 	const {
 		handleKeep,
@@ -95,6 +97,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
 	}, [currentIndex, images, history, redoStack]);
 
+	// Current photo and its display path
+	const currentPhoto = images[currentIndex];
+	const imageUrl = getImageUrl(currentPhoto);
+	const fileName = getFileName(currentPhoto);
+
 	const handleImageLoad = (e) => {
 		setNaturalSize({
 			width: e.target.naturalWidth,
@@ -104,8 +111,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	};
 
 	const handleImageError = (e) => {
-		console.error('Image load error:', e, 'Path:', displayPath);
-		setError(`Failed to load image: ${getFileName()}`);
+		console.error('Image load error:', e);
+		setError(`Failed to load image: ${fileName}`);
 	};
 
 	if (loading) {
@@ -115,16 +122,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			</div>
 		);
 	}
-
-	// Current photo object ({ baseName, dirPath, rawPath, jpegPath })
-	const currentPhoto = images[currentIndex];
-
-	// Display JPEG if present, otherwise fall back to RAW path
-	const displayPath = currentPhoto?.jpegPath || currentPhoto?.rawPath || '';
-	const imageUrl = displayPath ? convertFileSrc(displayPath) : '';
-
-	// Helper to get current display base name
-	const getFileName = () => currentPhoto?.baseName || '';
 
 	const handleBackToSetup = (e) => {
 		if (e) e.preventDefault();

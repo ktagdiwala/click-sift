@@ -1,4 +1,5 @@
 // Functions for grouping image paths and clamping pan values for image zooming.
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 export const groupImagePaths = (filePaths) => {
     const groups = new Map();
@@ -61,3 +62,11 @@ export const getClampedPan = (x, y, zoom, imageRef, imageElementRef) => {
     };
 };
 
+export const getDisplayPath = (photo) => photo?.jpegPath || photo?.rawPath || '';
+
+export const getImageUrl = (photo) => {
+    const path = getDisplayPath(photo);
+    return path ? convertFileSrc(path) : '';
+};
+
+export const getFileName = (photo) => photo?.baseName || '';
