@@ -22,6 +22,7 @@ import { useImageZoomPan } from '../hooks/useImageZoomPan';
 import { useShortcuts } from '../hooks/useShortcuts';
 import { useImageLoader } from '../hooks/useImageLoader';
 import { useImageRating } from '../hooks/useImageRating';
+import { useImageRename } from '../hooks/useImageRename';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
@@ -47,6 +48,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		loading
 	} = useImageLoader(config.targetDir, setError);
 	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
+	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
 
 	// Image zoom and pan hook
 	const {
@@ -136,39 +138,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		if (images.length === 0) return;
 		const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
 		setCurrentIndex(prevIndex);
-	};
-
-	const handleRenameSave = async (updatedName) => {
-		if (!currentPhoto) return;
-
-		try {
-			const separator = currentPhoto.dirPath.includes('\\') ? '\\' : '/';
-			const updatedPaths = {};
-
-			for (const { key, path } of [
-				{ key: 'jpegPath', path: currentPhoto.jpegPath },
-				{ key: 'rawPath', path: currentPhoto.rawPath },
-			]) {
-				if (!path) continue;
-				const ext = path.split('.').pop();
-				const newName = `${updatedName}.${ext}`;
-
-				await invoke('rename_file', { filePath: path, newName });
-				updatedPaths[key] = `${currentPhoto.dirPath}${separator}${newName}`;
-			}
-
-			setImages((prev) => {
-				const next = [...prev];
-				next[currentIndex] = {
-					...currentPhoto,
-					baseName: updatedName,
-					...updatedPaths,
-				};
-				return next;
-			});
-		} catch (e) {
-			setError(`Failed to rename file group: ${e}`);
-		}
 	};
 
 	// Keyboard shortcuts hook
