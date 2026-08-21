@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
 import Histogram from '../components/Histogram';
@@ -61,7 +62,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const zoomPreviewRef = useRef(null);
 	const [history, setHistory] = useState([]);  // Stores the last keep/delete actions for undoing
 	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
-	const [stripHeight, setStripHeight] = useState(100);
+	// const [stripHeight, setStripHeight] = useState(100);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
 
@@ -111,27 +112,27 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		loadImages();
 	}, [config.targetDir]);
 
-	// Resizing logic for the zoom strip handle
-	const handleResizeMouseDown = (e) => {
-		e.preventDefault();
-		const startY = e.clientY;
-		const startHeight = stripHeight;
+	// // Resizing logic for the zoom strip handle
+	// const handleResizeMouseDown = (e) => {
+	// 	e.preventDefault();
+	// 	const startY = e.clientY;
+	// 	const startHeight = stripHeight;
 
-		const onMouseMove = (moveEvent) => {
-			const deltaY = moveEvent.clientY - startY;
-			// Clamps height between 0px (min) and 800px (max)
-			const newHeight = Math.min(Math.max(0, startHeight + deltaY), 800);
-			setStripHeight(newHeight);
-		};
+	// 	const onMouseMove = (moveEvent) => {
+	// 		const deltaY = moveEvent.clientY - startY;
+	// 		// Clamps height between 0px (min) and 800px (max)
+	// 		const newHeight = Math.min(Math.max(0, startHeight + deltaY), 800);
+	// 		setStripHeight(newHeight);
+	// 	};
 
-		const onMouseUp = () => {
-			window.removeEventListener('mousemove', onMouseMove);
-			window.removeEventListener('mouseup', onMouseUp);
-		};
+	// 	const onMouseUp = () => {
+	// 		window.removeEventListener('mousemove', onMouseMove);
+	// 		window.removeEventListener('mouseup', onMouseUp);
+	// 	};
 
-		window.addEventListener('mousemove', onMouseMove);
-		window.addEventListener('mouseup', onMouseUp);
-	};
+	// 	window.addEventListener('mousemove', onMouseMove);
+	// 	window.addEventListener('mouseup', onMouseUp);
+	// };
 
 	// Rating handler function
 	const handleSetRating = async (newRating) => {
@@ -626,11 +627,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		<div className="photo-sort-screen">
 			<div className="left-column">
 				{/* Zoom Preview Strip */}
-				<div
+				{/* <div
 					className="zoom-preview-container"
 					style={{ height: `${stripHeight}px` }} // Inline state overrides CSS height conflicts
-				>
-					<div
+				> */}
+				{/* <div
 						className="zoom-preview"
 						ref={zoomPreviewRef}
 						style={{
@@ -639,14 +640,22 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 							backgroundPosition: `calc(50% + ${panX}px) calc(50% + ${panY}px)`,
 							backgroundRepeat: 'no-repeat',
 						}}
-					/>
-					{/* Draggable Resize Handle */}
-					<div
+					/> */}
+				{/* Draggable Resize Handle */}
+				{/* <div
 						className="zoom-strip-resize-handle"
 						onMouseDown={handleResizeMouseDown}
 						title="Drag to resize strip"
-					/>
-				</div>
+					/> */}
+				<ZoomStrip
+					imageUrl={imageUrl}
+					imageLoaded={imageLoaded}
+					naturalSize={naturalSize}
+					panX={panX}
+					panY={panY}
+					zoomPreviewRef={zoomPreviewRef}
+				/>
+				{/* </div> */}
 
 				{/* Main content area */}
 				<div className="main-content">
