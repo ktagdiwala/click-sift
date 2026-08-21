@@ -17,6 +17,7 @@ import {groupImagePaths, getClampedPan} from '../utils/imageUtils'
 
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
+import { useImageZoomPan } from '../hooks/useImageZoomPan';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
@@ -29,9 +30,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
-	const [imageZoom, setImageZoom] = useState(1);
-	const [panX, setPanX] = useState(0);
-	const [panY, setPanY] = useState(0);
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 	const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
@@ -51,6 +49,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
         history,
         redoStack,
     } = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
+
+	const {
+        imageZoom,
+        panX,
+        panY,
+        handleZoomIn,
+        handleZoomOut,
+        resetZoom,
+        handleMouseDown,
+        handleMouseMove,
+        handleMouseUp,
+    } = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
 
 	// Load images on mount
 	useEffect(() => {
@@ -124,7 +134,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		}
 	};
 
-	// Initialize rename mode
+	// Reset zoom when switching to a new image
 	useEffect(() => {
 		if (images.length > 0 && images[currentIndex]) {
 			setImageLoaded(false);
@@ -249,54 +259,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		if (images.length === 0) return;
 		const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
 		setCurrentIndex(prevIndex);
-	};
-
-	const handleZoomIn = () => {
-		setImageZoom((prev) => Math.min(5, prev + 0.2));
-	};
-
-	const handleZoomOut = () => {
-		setImageZoom((prev) => Math.max(1, prev - 0.2));
-	};
-
-	const resetZoom = () => {
-		setImageZoom(1);
-		setPanX(0);
-		setPanY(0);
-	};
-
-	const handleMouseDown = (e) => {
-		if (imageZoom <= 1) return; // Only allow drag when zoomed in
-		e.preventDefault();
-		setIsDragging(true);
-		setDragStart({
-			x: e.clientX,
-			y: e.clientY,
-			initialPanX: panX,
-			initialPanY: panY
-		});
-	};
-
-	const handleMouseMove = (e) => {
-		if (!isDragging) return;
-		e.preventDefault();
-
-		// Calculate distance moved from initial click position
-		const deltaX = e.clientX - dragStart.x;
-		const deltaY = e.clientY - dragStart.y;
-
-		const rawX = dragStart.initialPanX + deltaX;
-		const rawY = dragStart.initialPanY + deltaY;
-
-		// Clamp pan so edges stay inside viewer bounds
-		const clamped = getClampedPan(rawX, rawY, imageZoom, imageRef, imageElementRef);
-
-		setPanX(clamped.x);
-		setPanY(clamped.y);
-	};
-
-	const handleMouseUp = () => {
-		setIsDragging(false);
 	};
 
 	const handleRenameSave = async (updatedName) => {
