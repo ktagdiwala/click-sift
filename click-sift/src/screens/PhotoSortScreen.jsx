@@ -15,6 +15,9 @@ import ConfirmModal from '../components/ConfirmModal';
 // Utils
 import {groupImagePaths, getClampedPan} from '../utils/imageUtils'
 
+// Hooks
+import { usePhotoActions } from '../hooks/usePhotoActions';
+
 // Styles
 import '../styles/PhotoSortScreen.css';
 
@@ -36,11 +39,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const imageRef = useRef(null);
 	const imageElementRef = useRef(null);
 	const zoomPreviewRef = useRef(null);
-	const [history, setHistory] = useState([]);  // Stores the last keep/delete actions for undoing
-	const [redoStack, setRedoStack] = useState([]);	// Stores last actions for redoing
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
 
+	// Custom Hooks
+    const {
+        handleKeep,
+        handleDiscard,
+        handleUndo,
+        handleRedo,
+        history,
+        redoStack,
+    } = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
 
 	// Load images on mount
 	useEffect(() => {
@@ -228,189 +238,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			return () => imageElement.removeEventListener('wheel', handleWheel);
 		}
 	}, [imageZoom, panX, panY, imageLoaded]);
-
-	const handleKeep = async () => {
-		if (images.length === 0) return;
-
-		try {
-			// Updated for grouped jpeg/raw
-			const item = images[currentIndex];
-			const separator = item.dirPath?.includes('/') ? '/' : '\\';
-			const filesToMove = [item.jpegPath, item.rawPath].filter(Boolean);
-			const movedFiles = [];
-
-			for (const filePath of filesToMove) {
-				const fileNameWithExt = filePath.split(/[/\\]/).pop();
-				const destination = `${config.keepDir}${separator}${fileNameWithExt}`;
-
-				await invoke('move_file', {
-					source: filePath,
-					destination,
-				});
-
-				movedFiles.push({ source: filePath, destination });
-			}
-
-			// Track action in history stack & clear redo stack
-			const action = {
-				type: 'keep',
-				item,
-				movedFiles,
-				originalIndex: currentIndex,
-			};
-
-			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
-			setRedoStack([]);
-
-			// Update counters
-			setKeptCount((prev) => prev + 1);
-
-			const newIndex = currentIndex < images.length - 1 ? currentIndex : 0;
-			const newImages = images.filter((_, i) => i !== currentIndex);
-			setImages(newImages);
-
-			if (newImages.length === 0) {
-				setError('All photos have been sorted!');
-			} else {
-				setCurrentIndex(newIndex >= newImages.length ? newImages.length - 1 : newIndex);
-			}
-		} catch (e) {
-			setError(`Failed to move file to keep: ${e}`);
-		}
-	};
-
-	const handleDiscard = async () => {
-		if (images.length === 0) return;
-
-		try {
-			// Updated for grouped jpeg/raw
-			const item = images[currentIndex];
-			const separator = item.dirPath?.includes('/') ? '/' : '\\';
-			const filesToMove = [item.jpegPath, item.rawPath].filter(Boolean);
-			const movedFiles = [];
-
-			for (const filePath of filesToMove) {
-				const fileNameWithExt = filePath.split(/[/\\]/).pop();
-				const destination = `${config.discardDir}${separator}${fileNameWithExt}`;
-
-				await invoke('move_file', {
-					source: filePath,
-					destination,
-				});
-
-				movedFiles.push({ source: filePath, destination });
-			}
-
-			// Track action in history stack & clear redo stack
-			const action = {
-				type: 'discard',
-				item,
-				movedFiles,
-				originalIndex: currentIndex,
-			};
-
-			setHistory((prev) => [...prev, action].slice(-MAX_HISTORY_LIMIT));
-			setRedoStack([]);
-
-			// update counters
-			setDiscardedCount((prev) => prev + 1);
-
-			const newIndex = currentIndex < images.length - 1 ? currentIndex : 0;
-			const newImages = images.filter((_, i) => i !== currentIndex);
-			setImages(newImages);
-
-			if (newImages.length === 0) {
-				setError('All photos have been sorted!');
-			} else {
-				setCurrentIndex(newIndex >= newImages.length ? newImages.length - 1 : newIndex);
-			}
-		} catch (e) {
-			setError(`Failed to move file to discard: ${e}`);
-		}
-	};
-
-	const handleUndo = async () => {
-		if (history.length === 0) return;
-
-		const lastAction = history[history.length - 1];
-
-		try {
-			// Updated for grouped jpeg/raw
-			const filesToUndo = lastAction.movedFiles || [{ source: lastAction.source, destination: lastAction.destination }];
-
-			for (const file of filesToUndo) {
-				await invoke('move_file', {
-					source: file.destination,
-					destination: file.source,
-				});
-			}
-
-			const updatedImages = [...images];
-			const itemToRestore = lastAction.item || lastAction.source;
-			updatedImages.splice(lastAction.originalIndex, 0, itemToRestore);
-
-			setImages(updatedImages);
-			setCurrentIndex(lastAction.originalIndex);
-
-			// Decrement the corresponding counter
-			if (lastAction.type === 'keep') {
-				setKeptCount((prev) => Math.max(0, prev - 1));
-			} else {
-				setDiscardedCount((prev) => Math.max(0, prev - 1));
-			}
-
-			// Pop from history, push to redo
-			setHistory((prev) => prev.slice(0, -1));
-			setRedoStack((prev) => [...prev, lastAction]);
-			setError(''); // Clear error/completion banner if returning from finished screen
-		} catch (e) {
-			setError(`Failed to undo action: ${e}`);
-		}
-	};
-
-	const handleRedo = async () => {
-		if (redoStack.length === 0) return;
-
-		const nextAction = redoStack[redoStack.length - 1];
-
-		try {
-			// Updated for grouped jpeg/raw
-			const filesToRedo = nextAction.movedFiles || [{ source: nextAction.source, destination: nextAction.destination }];
-
-			for (const file of filesToRedo) {
-				// Re-apply move action
-				await invoke('move_file', {
-					source: file.source,
-					destination: file.destination,
-				});
-			}
-
-			const targetItem = nextAction.item || nextAction.source;
-			// Remove file from list again
-			const updatedImages = images.filter((img) => img !== targetItem);
-
-			setImages(updatedImages);
-
-			if (nextAction.type === 'keep') {
-				setKeptCount((prev) => prev + 1);
-			} else {
-				setDiscardedCount((prev) => prev + 1);
-			}
-
-			// Safeguard index position
-			if (updatedImages.length === 0) {
-				setError('All photos have been sorted!');
-			} else {
-				setCurrentIndex((prev) => (prev >= updatedImages.length ? updatedImages.length - 1 : prev));
-			}
-
-			// Pop from redo, push to history
-			setRedoStack((prev) => prev.slice(0, -1));
-			setHistory((prev) => [...prev, nextAction].slice(-MAX_HISTORY_LIMIT));
-		} catch (e) {
-			setError(`Failed to redo action: ${e}`);
-		}
-	};
 
 	const handleNextPhoto = () => {
 		if (images.length === 0) return;
