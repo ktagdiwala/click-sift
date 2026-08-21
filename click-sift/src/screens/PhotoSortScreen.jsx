@@ -97,8 +97,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					})
 				);
 				setImages(imagesWithRatings);
-				// setImages(groupedImages);
-				// setImages(imageList);
 
 				if (imageList.length === 0) {
 					setError('No supported image files found in the target directory.');
@@ -724,35 +722,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				/>
 
 				{/* Progress & Navigation Section */}
-				{/* <div className="sidebar-section progress-section">
-					<div className="progress-bar-capsule">
-						<button
-							type="button"
-							className="nav-arrow-btn"
-							disabled={images.length === 0}
-							onClick={handlePreviousPhoto}
-							title="Previous (← arrow key)"
-						>
-							◀
-						</button>
-
-						<div className="progress-indicator">
-							<span className="progress-number">{images.length > 0 ? currentIndex + 1 : 0}</span>
-							<span className="progress-separator">/</span>
-							<span className="progress-total">{images.length}</span>
-						</div>
-
-						<button
-							type="button"
-							className="nav-arrow-btn"
-							disabled={images.length === 0}
-							onClick={handleNextPhoto}
-							title="Next (→ arrow key)"
-						>
-							▶
-						</button>
-					</div>
-				</div> */}
 				<Navigation
 					currentIndex={currentIndex}
 					totalImages={images.length}
