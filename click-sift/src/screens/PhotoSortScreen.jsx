@@ -5,6 +5,7 @@ import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
 import Histogram from '../components/Histogram';
+import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/PhotoSortScreen.css';
 
@@ -750,27 +751,12 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				</div>
 
 				{/* Undo / Redo Section */}
-				<div className="sidebar-section history-section">
-					<label className="section-label">History</label>
-					<div className="history-buttons-vertical">
-						<button
-							className="btn btn-history"
-							onClick={handleUndo}
-							disabled={history.length === 0}
-							title="Undo last action (Ctrl+Z)"
-						>
-							↶ Undo ({history.length})
-						</button>
-						<button
-							className="btn btn-history"
-							onClick={handleRedo}
-							disabled={redoStack.length === 0}
-							title="Redo action (Ctrl+Y)"
-						>
-							↷ Redo ({redoStack.length})
-						</button>
-					</div>
-				</div>
+				<UndoRedoControls
+					historyCount={history.length}
+					redoCount={redoStack.length}
+					onUndo={handleUndo}
+					onRedo={handleRedo}
+				/>
 
 				{/* Back to Setup Section */}
 				<div className="sidebar-section back-section">
