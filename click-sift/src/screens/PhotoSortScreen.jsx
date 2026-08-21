@@ -121,7 +121,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const onMouseMove = (moveEvent) => {
 			const deltaY = moveEvent.clientY - startY;
 			// Clamps height between 50px (min) and 300px (max)
-			const newHeight = Math.min(Math.max(50, startHeight + deltaY), 300);
+			const newHeight = Math.min(Math.max(0, startHeight + deltaY), 800);
 			setStripHeight(newHeight);
 		};
 
@@ -647,26 +647,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		);
 	}
 
-	// // Replace the empty images check near the top of your component:
-	// if (images.length === 0 && !loading) {
-	// 	return (
-	// 		<div className="photo-sort-screen completion-screen">
-	// 			<div className="completion-card">
-	// 				<h2>All Done! 🎉</h2>
-	// 				<p className="completion-message">{error || 'All photos in this folder have been sorted.'}</p>
-
-	// 				<button
-	// 					className="btn btn-back-primary"
-	// 					onClick={onBackToSetup}
-	// 				>
-	// 					⟲ SORT ANOTHER FOLDER
-	// 				</button>
-	// 			</div>
-	// 		</div>
-	// 	);
-	// }
-
-
 	// Current photo object ({ baseName, dirPath, rawPath, jpegPath })
 	const currentPhoto = images[currentIndex];
 
@@ -822,13 +802,34 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					)}
 				</div>
 
-				{/* Progress Section */}
+				{/* Progress & Navigation Section */}
 				<div className="sidebar-section progress-section">
-					<label className="section-label">Progress</label>
-					<div className="progress-indicator">
-						<span className="progress-number">{images.length > 0 ? currentIndex + 1 : 0}</span>
-						<span className="progress-separator">/</span>
-						<span className="progress-total">{images.length}</span>
+					<div className="progress-bar-capsule">
+						<button
+							type="button"
+							className="nav-arrow-btn"
+							disabled={images.length === 0}
+							onClick={handlePreviousPhoto}
+							title="Previous (← arrow key)"
+						>
+							◀
+						</button>
+
+						<div className="progress-indicator">
+							<span className="progress-number">{images.length > 0 ? currentIndex + 1 : 0}</span>
+							<span className="progress-separator">/</span>
+							<span className="progress-total">{images.length}</span>
+						</div>
+
+						<button
+							type="button"
+							className="nav-arrow-btn"
+							disabled={images.length === 0}
+							onClick={handleNextPhoto}
+							title="Next (→ arrow key)"
+						>
+							▶
+						</button>
 					</div>
 				</div>
 
@@ -856,7 +857,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 				{/* Histogram Section */}
 				<div className="sidebar-section histogram-section">
-					<label className="section-label">Histogram</label>
+					<label className="section-label">Light Histogram</label>
 					{images.length > 0 && imageUrl ? (
 						<Histogram src={imageUrl} />
 					) : (
@@ -864,32 +865,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					)}
 				</div>
 
-				{/* Navigation Section */}
-				<div className="sidebar-section nav-section">
-					<label className="section-label">Navigate</label>
-					<div className="nav-buttons-vertical">
-						<button
-							className="nav-button prev-button"
-							disabled={images.length === 0}
-							onClick={handlePreviousPhoto}
-							title="Previous (← arrow key)"
-						>
-							◀ Previous
-						</button>
-						<button
-							className="nav-button next-button"
-							disabled={images.length === 0}
-							onClick={handleNextPhoto}
-							title="Next (→ arrow key)"
-						>
-							Next ▶
-						</button>
-					</div>
-				</div>
-
 				{/* Action Buttons Section */}
 				<div className="sidebar-section action-section">
-					<label className="section-label">Action</label>
 					<div className="action-buttons-vertical">
 						<button
 							className="btn btn-keep"
