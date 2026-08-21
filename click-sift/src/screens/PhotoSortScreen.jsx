@@ -21,6 +21,7 @@ import { usePhotoActions } from '../hooks/usePhotoActions';
 import { useImageZoomPan } from '../hooks/useImageZoomPan';
 import { useShortcuts } from '../hooks/useShortcuts';
 import { useImageLoader } from '../hooks/useImageLoader';
+import { useImageRating } from '../hooks/useImageRating';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
@@ -39,12 +40,13 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 	// Custom Hooks
 
-	// Data loading hook
+	// State and data hooks
 	const {
 		images,
 		setImages,
 		loading
 	} = useImageLoader(config.targetDir, setError);
+	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
 
 	// Image zoom and pan hook
 	const {
@@ -72,33 +74,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Derive paths after images are returned from the useImageLoader hook
 	const currentPhotoPath = images[currentIndex]?.jpegPath || images[currentIndex]?.rawPath;
 	const prevPhotoPathRef = useRef(currentPhotoPath);
-
-	// Rating handler function
-	const handleSetRating = async (newRating) => {
-		if (currentIndex < 0 || currentIndex >= images.length) return;
-
-		const item = images[currentIndex];
-		const currentRating = item.rating || 0;
-		const targetRating = currentRating === newRating ? 0 : newRating;
-
-		// Optimistically update React UI state
-		const updatedImages = [...images];
-		updatedImages[currentIndex] = { ...item, rating: targetRating };
-		setImages(updatedImages);
-
-		// Persist updated rating to both JPEG and RAW files on disk
-		try {
-			const filesToUpdate = [item.jpegPath, item.rawPath].filter(Boolean);
-			for (const filePath of filesToUpdate) {
-				await invoke('set_image_rating', {
-					filePath,
-					rating: targetRating,
-				});
-			}
-		} catch (e) {
-			setError(`Failed to save rating to file metadata: ${e}`);
-		}
-	};
 
 	// Reset zoom when switching to a new image
 	useEffect(() => {
