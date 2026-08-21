@@ -48,8 +48,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
-	// const [renameMode, setRenameMode] = useState(false);
-	// const [newFileName, setNewFileName] = useState('');
 	const [imageZoom, setImageZoom] = useState(1);
 	const [panX, setPanX] = useState(0);
 	const [panY, setPanY] = useState(0);
@@ -122,7 +120,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 		const onMouseMove = (moveEvent) => {
 			const deltaY = moveEvent.clientY - startY;
-			// Clamps height between 50px (min) and 300px (max)
+			// Clamps height between 0px (min) and 800px (max)
 			const newHeight = Math.min(Math.max(0, startHeight + deltaY), 800);
 			setStripHeight(newHeight);
 		};
@@ -166,14 +164,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Initialize rename mode
 	useEffect(() => {
 		if (images.length > 0 && images[currentIndex]) {
-			// const item = images[currentIndex];
-
-			// // Safely extract filename whether item is an object or string
-			// const fileName = typeof item === 'string'
-			// 	? (item.split('\\').pop() || item.split('/').pop())
-			// 	: item.baseName;
-
-			// setNewFileName(fileName);
 			setImageLoaded(false);
 			resetZoom();
 		}
@@ -182,16 +172,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	// Handle keyboard shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e) => {
-			// if (renameMode) {
-			// 	if (e.key === 'Enter') {
-			// 		e.preventDefault();
-			// 		handleRenameSave();
-			// 	} else if (e.key === 'Escape') {
-			// 		e.preventDefault();
-			// 		handleRenameCancel();
-			// 	}
-			// 	return; // Don't process other global shortcuts while renaming
-			// }
 			if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
 				return;
 			}
@@ -244,7 +224,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					break;
 				case 'r':
 					e.preventDefault();
-					// handleRenameClick();
 					fileInfoRef.current?.openRename();
 					break;
 				default:
@@ -403,16 +382,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const lastAction = history[history.length - 1];
 
 		try {
-			// // Move file back from keep/discard folder to original folder
-			// await invoke('move_file', {
-			// 	source: lastAction.destination,
-			// 	destination: lastAction.source,
-			// });
-
-			// // Re-insert file at its original position in the array
-			// const updatedImages = [...images];
-			// updatedImages.splice(lastAction.originalIndex, 0, lastAction.source);
-
 			// Updated for grouped jpeg/raw
 			const filesToUndo = lastAction.movedFiles || [{ source: lastAction.source, destination: lastAction.destination }];
 
@@ -573,58 +542,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		setIsDragging(false);
 	};
 
-	// const handleRenameClick = () => {
-	// 	setRenameMode(true);
-	// };
-
-	// const handleRenameSave = async () => {
-	// 	if (!currentPhoto || newFileName === currentPhoto.baseName) {
-	// 		setRenameMode(false);
-	// 		return;
-	// 	}
-
-	// 	try {
-	// 		const separator = currentPhoto.dirPath.includes('\\') ? '\\' : '/';
-
-	// 		// 1. Rename JPEG version if it exists
-	// 		let updatedJpegPath = currentPhoto.jpegPath;
-	// 		if (currentPhoto.jpegPath) {
-	// 			const oldExt = currentPhoto.jpegPath.split('.').pop();
-	// 			const newJpegName = `${newFileName}.${oldExt}`;
-	// 			await invoke('rename_file', {
-	// 				filePath: currentPhoto.jpegPath,
-	// 				newName: newJpegName,
-	// 			});
-	// 			updatedJpegPath = `${currentPhoto.dirPath}${separator}${newJpegName}`;
-	// 		}
-
-	// 		// 2. Rename RAW version if it exists
-	// 		let updatedRawPath = currentPhoto.rawPath;
-	// 		if (currentPhoto.rawPath) {
-	// 			const oldExt = currentPhoto.rawPath.split('.').pop();
-	// 			const newRawName = `${newFileName}.${oldExt}`;
-	// 			await invoke('rename_file', {
-	// 				filePath: currentPhoto.rawPath,
-	// 				newName: newRawName,
-	// 			});
-	// 			updatedRawPath = `${currentPhoto.dirPath}${separator}${newRawName}`;
-	// 		}
-
-	// 		// 3. Update React state object
-	// 		const newImages = [...images];
-	// 		newImages[currentIndex] = {
-	// 			...currentPhoto,
-	// 			baseName: newFileName,
-	// 			jpegPath: updatedJpegPath,
-	// 			rawPath: updatedRawPath,
-	// 		};
-
-	// 		setImages(newImages);
-	// 		setRenameMode(false);
-	// 	} catch (e) {
-	// 		setError(`Failed to rename file group: ${e}`);
-	// 	}
-	// };
 	const handleRenameSave = async (updatedName) => {
 		if (!currentPhoto) return;
 
@@ -658,11 +575,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		}
 	};
 
-	// const handleRenameCancel = () => {
-	// 	setRenameMode(false);
-	// 	setNewFileName(getFileName());
-	// };
-
 	const handleImageLoad = (e) => {
 		setNaturalSize({
 			width: e.target.naturalWidth,
@@ -672,7 +584,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	};
 
 	const handleImageError = (e) => {
-		// console.error('Image load error:', e, 'Path:', images[currentIndex]);
 		console.error('Image load error:', e, 'Path:', displayPath);
 		setError(`Failed to load image: ${getFileName()}`);
 	};
@@ -804,47 +715,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			{/* Right Sidebar */}
 			<div className="right-sidebar">
 				{/* File Info Section */}
-				{/* <div className="sidebar-section file-section">
-					<label className="section-label">Current File</label>
-					{renameMode ? (
-						<div className="rename-input-group">
-							<input
-								type="text"
-								value={newFileName}
-								onChange={(e) => setNewFileName(e.target.value)}
-								className="rename-input"
-								autoFocus
-							/>
-							<button className="rename-btn save" onClick={handleRenameSave}>
-								Save
-							</button>
-							<button className="rename-btn cancel" onClick={handleRenameCancel}>
-								Cancel
-							</button>
-						</div>
-					) : (
-						<div
-							className={`filename-display ${images.length === 0 ? 'disabled' : ''}`}
-							onClick={images.length > 0 ? handleRenameClick : undefined}
-						>
-							<div className="filename-header">
-								<span className="filename">{getFileName()}</span>
-								{currentPhoto?.rawPath && (
-									<span className="raw-badge" title="RAW file detected for this photo">
-										[has RAW]
-									</span>
-								)}
-							</div>
-							{images.length > 0 && <span className="edit-hint">Click to rename</span>}
-						</div>
-					)}
-				</div> */}
 				<FileInfo
 					ref={fileInfoRef}
 					currentPhoto={currentPhoto}
 					disabled={images.length === 0}
 					onRenameSave={handleRenameSave}
-					// onRenameCancel={handleRenameCancel}
 				/>
 
 				{/* Progress & Navigation Section */}
