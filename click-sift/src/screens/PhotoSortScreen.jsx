@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
+
+// Components
 import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
@@ -9,42 +11,12 @@ import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
+
+// Utils
+import {groupImagePaths, getClampedPan} from '../utils/imageUtils'
+
+// Styles
 import '../styles/PhotoSortScreen.css';
-
-const groupImagePaths = (filePaths) => {
-	const groups = new Map();
-
-	filePaths.forEach((filePath) => {
-		// Extract filename and directory separator
-		const separator = filePath.includes('\\') ? '\\' : '/';
-		const fileName = filePath.split(separator).pop();
-		const lastDotIndex = fileName.lastIndexOf('.');
-		if (lastDotIndex === -1) return;
-
-		const baseName = fileName.substring(0, lastDotIndex);
-		const ext = fileName.substring(lastDotIndex + 1).toLowerCase();
-		const dirPath = filePath.substring(0, filePath.lastIndexOf(separator));
-
-		if (!groups.has(baseName)) {
-			groups.set(baseName, {
-				id: baseName,
-				baseName: baseName,
-				dirPath: dirPath,
-				rawPath: null,    // Full path to .CR3
-				jpegPath: null,   // Full path to .JPG/.JPEG
-			});
-		}
-
-		const group = groups.get(baseName);
-		if (ext === 'cr3') {
-			group.rawPath = filePath;
-		} else {
-			group.jpegPath = filePath;
-		}
-	});
-
-	return Array.from(groups.values());
-};
 
 export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const MAX_HISTORY_LIMIT = 500;
@@ -238,7 +210,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				const rawY = mouseY - (mouseY - panY) * scaleRatio;
 
 				// Clamp pan during wheel zoom
-				const clamped = getClampedPan(rawX, rawY, newZoom);
+				const clamped = getClampedPan(rawX, rawY, newZoom, imageRef, imageElementRef);
 				setPanX(clamped.x);
 				setPanY(clamped.y);
 			} else {
@@ -466,29 +438,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		setPanY(0);
 	};
 
-	const getClampedPan = (x, y, zoom) => {
-		if (!imageRef.current || !imageElementRef.current || zoom <= 1) {
-			return { x: 0, y: 0 };
-		}
-
-		// Container viewport dimensions
-		const boxWidth = imageRef.current.clientWidth;
-		const boxHeight = imageRef.current.clientHeight;
-
-		// Rendered image dimensions
-		const imgWidth = imageElementRef.current.offsetWidth;
-		const imgHeight = imageElementRef.current.offsetHeight;
-
-		// Calculate maximum allowed unscaled pan offset in each direction
-		const maxPanX = Math.max(0, (imgWidth * zoom - boxWidth) / (2));
-		const maxPanY = Math.max(0, (imgHeight * zoom - boxHeight) / (2));
-
-		return {
-			x: Math.min(maxPanX, Math.max(-maxPanX, x)),
-			y: Math.min(maxPanY, Math.max(-maxPanY, y)),
-		};
-	};
-
 	const handleMouseDown = (e) => {
 		if (imageZoom <= 1) return; // Only allow drag when zoomed in
 		e.preventDefault();
@@ -513,7 +462,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		const rawY = dragStart.initialPanY + deltaY;
 
 		// Clamp pan so edges stay inside viewer bounds
-		const clamped = getClampedPan(rawX, rawY, imageZoom);
+		const clamped = getClampedPan(rawX, rawY, imageZoom, imageRef, imageElementRef);
 
 		setPanX(clamped.x);
 		setPanY(clamped.y);
