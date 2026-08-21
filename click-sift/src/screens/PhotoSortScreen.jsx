@@ -5,6 +5,7 @@ import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
 import Histogram from '../components/Histogram';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/PhotoSortScreen.css';
 
 const groupImagePaths = (filePaths) => {
@@ -795,7 +796,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			)}
 
 			{/* Confirmation Modal */}
-			{showConfirmModal && (
+			{/* {showConfirmModal && (
 				<div className="ps-modal-backdrop" onClick={handleCancelBack}>
 					<div className="ps-modal-box" onClick={(e) => e.stopPropagation()}>
 						<h3 className="ps-modal-title">Return to Setup?</h3>
@@ -814,7 +815,13 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						</div>
 					</div>
 				</div>
-			)}
+			)} */}
+			<ConfirmModal
+				isOpen={showConfirmModal}
+				hasHistory={history.length > 0 || redoStack.length > 0}
+				onConfirm={handleConfirmBack}
+				onCancel={handleCancelBack}
+			/>
 
 		</div>
 	);
