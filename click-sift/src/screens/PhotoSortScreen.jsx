@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import ZoomStrip from '../components/ZoomStrip';
 import FileInfo from '../components/FileInfo';
 import Navigation from '../components/Navigation';
+import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
@@ -729,26 +730,11 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				</div>
 
 				{/* Action Buttons Section */}
-				<div className="sidebar-section action-section">
-					<div className="action-buttons-vertical">
-						<button
-							className="btn btn-keep"
-							onClick={handleKeep}
-							disabled={images.length === 0}
-							title="Keep this photo (K key)"
-						>
-							KEEP
-						</button>
-						<button
-							className="btn btn-discard"
-							onClick={handleDiscard}
-							disabled={images.length === 0}
-							title="Discard this photo (D key)"
-						>
-							DISCARD
-						</button>
-					</div>
-				</div>
+				<ActionControls
+					disabled={images.length === 0}
+					onKeep={handleKeep}
+					onDiscard={handleDiscard}
+				/>
 
 				{/* Undo / Redo Section */}
 				<UndoRedoControls
@@ -787,7 +773,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				onConfirm={handleConfirmBack}
 				onCancel={handleCancelBack}
 			/>
-
 		</div>
 	);
 }
