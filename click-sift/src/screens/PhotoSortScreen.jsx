@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 // Components
@@ -13,9 +12,6 @@ import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
 
-// Utils
-import { getClampedPan } from '../utils/imageUtils'
-
 // Hooks
 import { usePhotoActions } from '../hooks/usePhotoActions';
 import { useImageZoomPan } from '../hooks/useImageZoomPan';
@@ -23,12 +19,13 @@ import { useShortcuts } from '../hooks/useShortcuts';
 import { useImageLoader } from '../hooks/useImageLoader';
 import { useImageRating } from '../hooks/useImageRating';
 import { useImageRename } from '../hooks/useImageRename';
+import { usePhotoNav } from '../hooks/usePhotoNav';
 
 // Styles
 import '../styles/PhotoSortScreen.css';
 
 export default function PhotoSortScreen({ config, onBackToSetup }) {
-	const [currentIndex, setCurrentIndex] = useState(0);
+	// const [currentIndex, setCurrentIndex] = useState(0);
 	const [error, setError] = useState('');
 	const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
 	const [imageLoaded, setImageLoaded] = useState(false);
@@ -40,15 +37,12 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
 
 	// Custom Hooks
-
 	// State and data hooks
 	const {
 		images,
 		setImages,
 		loading
 	} = useImageLoader(config.targetDir, setError);
-	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
-	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
 
 	// Image zoom and pan hook
 	const {
@@ -63,6 +57,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		handleMouseUp,
 	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
 
+	// Photo navigation hook
+	const {
+		currentIndex,
+		setCurrentIndex,
+		handleNextPhoto,
+		handlePreviousPhoto,
+	} = usePhotoNav(images, keepZoomOnNav, resetZoom, setImageLoaded);
+
+	// Rating and renaming hooks
+	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
+	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
+	
 	// Photo actions hook
 	const {
 		handleKeep,
@@ -72,73 +78,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		history,
 		redoStack,
 	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
-
-	// Derive paths after images are returned from the useImageLoader hook
-	const currentPhotoPath = images[currentIndex]?.jpegPath || images[currentIndex]?.rawPath;
-	const prevPhotoPathRef = useRef(currentPhotoPath);
-
-	// Reset zoom when switching to a new image
-	useEffect(() => {
-		if (currentPhotoPath && currentPhotoPath !== prevPhotoPathRef.current) {
-			setImageLoaded(false);
-			if (!keepZoomOnNav) {
-				resetZoom();
-			}
-			prevPhotoPathRef.current = currentPhotoPath;
-		}
-	}, [currentIndex, images]);
-
-	// Handle mouse wheel zoom
-	useEffect(() => {
-		const handleWheel = (e) => {
-			e.preventDefault();
-			const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-			const newZoom = Math.min(Math.max(1, imageZoom * zoomFactor), 5);
-
-			if (!imageRef.current) return;
-			const rect = imageRef.current.getBoundingClientRect();
-
-			// Cursor position relative to viewer container center
-			const mouseX = e.clientX - rect.left - rect.width / 2;
-			const mouseY = e.clientY - rect.top - rect.height / 2;
-
-			// Adjust pan so the point under the cursor stays still
-			if (newZoom > 1) {
-				const scaleRatio = newZoom / imageZoom;
-				const rawX = mouseX - (mouseX - panX) * scaleRatio;
-				const rawY = mouseY - (mouseY - panY) * scaleRatio;
-
-				// Clamp pan during wheel zoom
-				const clamped = getClampedPan(rawX, rawY, newZoom, imageRef, imageElementRef);
-				setPanX(clamped.x);
-				setPanY(clamped.y);
-			} else {
-				// Reset pan if zoomed out to normal
-				setPanX(0);
-				setPanY(0);
-			}
-
-			setImageZoom(newZoom);
-		};
-
-		const imageElement = imageRef.current;
-		if (imageElement) {
-			imageElement.addEventListener('wheel', handleWheel, { passive: false });
-			return () => imageElement.removeEventListener('wheel', handleWheel);
-		}
-	}, [imageZoom, panX, panY, imageLoaded]);
-
-	const handleNextPhoto = () => {
-		if (images.length === 0) return;
-		const nextIndex = (currentIndex + 1) % images.length;
-		setCurrentIndex(nextIndex);
-	};
-
-	const handlePreviousPhoto = () => {
-		if (images.length === 0) return;
-		const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
-		setCurrentIndex(prevIndex);
-	};
 
 	// Keyboard shortcuts hook
 	useShortcuts({
@@ -186,9 +125,6 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 	// Helper to get current display base name
 	const getFileName = () => currentPhoto?.baseName || '';
-
-	// Helper to get current star rating
-	const currentRating = currentPhoto?.rating || 0;
 
 	const handleBackToSetup = (e) => {
 		if (e) e.preventDefault();
