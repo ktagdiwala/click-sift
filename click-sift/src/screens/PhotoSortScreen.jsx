@@ -37,6 +37,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
+	const [stripDimensions, setStripDimensions] = useState({ width: 300, height: 100 });
 
 	// Custom Hooks
 	// State and data hooks
@@ -51,13 +52,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		imageZoom,
 		panX,
 		panY,
+		hoverCoords,
+		lensSize,
+		isHovering,
 		handleZoomIn,
 		handleZoomOut,
 		resetZoom,
 		handleMouseDown,
 		handleMouseMove,
 		handleMouseUp,
-	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
+		handleMouseEnter,
+		handleMouseLeave,
+	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDimensions);
 
 	// Photo navigation hook
 	const {
@@ -148,6 +154,9 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					panX={panX}
 					panY={panY}
 					zoomPreviewRef={zoomPreviewRef}
+					imageZoom={imageZoom}
+					hoverCoords={hoverCoords}
+					onDimensionsChange={setStripDimensions}
 				/>
 
 				{/* Main content area */}
@@ -159,8 +168,9 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						onMouseDown={handleMouseDown}
 						onMouseMove={handleMouseMove}
 						onMouseUp={handleMouseUp}
-						onMouseLeave={handleMouseUp}
-						style={{ cursor: imageZoom > 1 ? 'grab' : 'default' }}
+						onMouseLeave={handleMouseLeave}
+						onMouseEnter={handleMouseEnter}
+						style={{ cursor: imageZoom > 1 ? 'grab' : 'crosshair' }}
 					>
 						{images.length > 0 ? (
 							<>
@@ -173,10 +183,45 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									onError={handleImageError}
 									style={{
 										transform: `translate(${panX}px, ${panY}px) scale(${imageZoom})`,
-										cursor: imageZoom > 1 ? 'grabbing' : 'default',
+										cursor: imageZoom > 1 ? 'grabbing' : 'crosshair',
 										pointerEvents: 'none' // Prevents browser native image-ghosting drag
 									}}
 								/>
+
+								{/* Magnifier Target Lens Box (Active only when zoomed out at 1x) */}
+								{isHovering && imageZoom === 1 && imageLoaded && imageElementRef.current && (() => {
+									const imgRect = imageElementRef.current.getBoundingClientRect();
+									const containerRect = imageRef.current?.getBoundingClientRect() || imgRect;
+
+									// Calculate offset of image within container
+									const imgLeftOffset = imgRect.left - containerRect.left;
+									const imgTopOffset = imgRect.top - containerRect.top;
+
+									const lensWidthPx = (lensSize.widthPercent / 100) * imgRect.width;
+									const lensHeightPx = (lensSize.heightPercent / 100) * imgRect.height;
+
+									const lensCenterX = imgLeftOffset + (hoverCoords.x / 100) * imgRect.width;
+									const lensCenterY = imgTopOffset + (hoverCoords.y / 100) * imgRect.height;
+
+									return (
+										<div
+											className="magnifier-lens"
+											style={{
+												position: 'absolute',
+												top: `${lensCenterY}px`,
+												left: `${lensCenterX}px`,
+												width: `${lensWidthPx}px`,
+												height: `${lensHeightPx}px`,
+												transform: 'translate(-50%, -50%)',
+												border: '2px solid rgba(255, 255, 255, 0.85)',
+												boxShadow: '0 0 8px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(0, 0, 0, 0.3)',
+												borderRadius: '4px',
+												pointerEvents: 'none',
+												backgroundColor: 'rgba(255, 255, 255, 0.12)',
+											}}
+										/>
+									);
+								})()}
 
 								{/* Zoom Controls */}
 								<ZoomControls
