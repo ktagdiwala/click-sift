@@ -38,6 +38,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const fileInfoRef = useRef(null);
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
 	const [stripDimensions, setStripDimensions] = useState({ width: 300, height: 100 });
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
 	// Custom Hooks
 	// State and data hooks
@@ -253,7 +254,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			</div>
 
 			{/* Right Sidebar */}
-			<div className="right-sidebar">
+			<div className={`right-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
 				{/* File Info Section */}
 				<FileInfo
 					ref={fileInfoRef}
@@ -305,6 +306,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				{/* Back to Setup Section */}
 				<div className="sidebar-section back-section">
 					<button
+						className="btn-toggle-sidebar"
+						onClick={() => setSidebarCollapsed(true)}
+						title="Hide Sidebar"
+						aria-label="Hide Sidebar"
+					>
+						▶
+					</button>
+					<button
 						className="btn btn-back"
 						onClick={(e) => handleBackToSetup(e)}
 						title="Return to setup screen"
@@ -313,6 +322,17 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					</button>
 				</div>
 			</div>
+
+			{sidebarCollapsed && (
+				<button
+					className="btn-show-sidebar-floating"
+					onClick={() => setSidebarCollapsed(false)}
+					title="Show Sidebar"
+					aria-label="Show Sidebar"
+				>
+					◀
+				</button>
+			)}
 
 			{/* Error Message */}
 			{error && error !== 'All photos have been sorted!' && (

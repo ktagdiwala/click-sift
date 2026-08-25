@@ -704,3 +704,72 @@
 .ps-btn-confirm:hover {
     background-color: #ef4444;
 }
+
+/* Sidebar Collapse Animations & Layout */
+.right-sidebar {
+    transition: margin-right 0.25s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.right-sidebar.collapsed {
+    display: none;
+}
+
+/* Back section layout: Force horizontal alignment */
+.sidebar-section.back-section {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+}
+
+/* Make 'Back to Setup' fill remaining space while collapse button stays compact */
+.sidebar-section.back-section .btn-back {
+    flex: 1;
+    margin: 0; /* Clear any vertical margin that forces wrapping */
+}
+
+/* Sidebar Toggle Button (Inside Sidebar) */
+.btn-toggle-sidebar {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #cccccc;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 0 10px;
+    height: 38px; /* Match standard button height */
+    font-size: 0.75rem;
+    cursor: pointer;
+    flex-shrink: 0; /* Prevents button from squeezing width-wise */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-toggle-sidebar:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+/* Floating Expand Button when Sidebar is Hidden */
+.btn-show-sidebar-floating {
+    position: absolute;
+    bottom: 70px; /* Positioned higher to clear ZoomControls */
+    right: 10px;
+    z-index: 100;
+    background-color: rgba(30, 30, 30, 0.85);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-show-sidebar-floating:hover {
+    background-color: rgba(50, 50, 50, 0.95);
+    transform: scale(1.05);
+}
