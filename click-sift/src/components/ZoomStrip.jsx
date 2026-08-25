@@ -3,13 +3,9 @@ import React, { useState, useEffect } from 'react';
 export default function ZoomPreviewStrip({
 	imageUrl,
 	imageLoaded,
-	naturalSize,
-	panX,
-	panY,
 	zoomPreviewRef,
 	imageZoom = 1,
-	lensSize = { widthPercent: 20, heightPercent: 20 },
-	hoverCoords = { x: 50, y: 50 },
+	hoverCoords = { x: 50, y: 50, bgX: 50, bgY: 50 },
 	onDimensionsChange,
 }) {
 	const [stripHeight, setStripHeight] = useState(100);
@@ -52,12 +48,8 @@ export default function ZoomPreviewStrip({
 				ref={zoomPreviewRef}
 				style={{
 					backgroundImage: imageLoaded ? `url(${imageUrl})` : 'none',
-					backgroundSize: imageZoom === 1
-						? '250% auto' // Locked to 250% width scale
-						: (naturalSize.width ? `${naturalSize.width}px ${naturalSize.height}px` : 'cover'),
-					backgroundPosition: imageZoom === 1
-						? `${hoverCoords.bgX}% ${hoverCoords.bgY}%`
-						: `calc(50% + ${panX}px) calc(50% + ${panY}px)`,
+					backgroundSize: `${1.5 * imageZoom * 100}% auto`,
+					backgroundPosition: `${hoverCoords.bgX}% ${hoverCoords.bgY}%`,
 					backgroundRepeat: 'no-repeat',
 				}}
 			/>

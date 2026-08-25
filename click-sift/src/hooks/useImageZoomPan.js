@@ -66,13 +66,13 @@ export function useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDim
 
 			// 1. Calculate how large the background image is rendered inside ZoomStrip (2.5x strip width)
 			const bgWidthPx = stripDimensions.width * 2.5;
-			
+
 			// 2. Compute the exact fraction of the original photo that fits across stripDimensions.width
 			const visibleWidthFraction = stripDimensions.width / bgWidthPx; // exactly 1 / 2.5 = 0.40 (40%)
-			
+
 			// 3. Compute Lens Width percentage relative to the rendered image
 			const lWidth = Math.min(100, (visibleWidthFraction * rect.width / rect.width) * 100);
-			
+
 			// 4. Compute Lens Height percentage maintaining exact aspect ratio of the ZoomStrip
 			const lHeight = Math.min(100, (stripDimensions.height / bgWidthPx) * (rect.width / rect.height) * 100);
 
@@ -115,6 +115,15 @@ export function useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDim
 
 		setPanX(clamped.x);
 		setPanY(clamped.y);
+
+		// Update hoverCoords directly with clamped percentages
+		setHoverCoords({
+			x: 50,
+			y: 50,
+			bgX: clamped.bgX,
+			bgY: clamped.bgY,
+		});
+
 	}, [isDragging, imageZoom, imageRef, imageElementRef, stripDimensions.width, stripDimensions.height]);
 
 	// Handle Drag Mouse Up
@@ -154,6 +163,13 @@ export function useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDim
 							const rawX = mouseX - (mouseX - prevPanX) * scaleRatio;
 							const rawY = mouseY - (mouseY - prevPanY) * scaleRatio;
 							const clamped = getClampedPan(rawX, rawY, newZoom, imageRef, imageElementRef);
+
+							setHoverCoords({
+								x: 50,
+								y: 50,
+								bgX: clamped.bgX,
+								bgY: clamped.bgY,
+							});
 
 							// Return updated panY inside callback
 							return clamped.y;
