@@ -73,19 +73,20 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		handlePreviousPhoto,
 	} = usePhotoNav(images, keepZoomOnNav, resetZoom, setImageLoaded);
 
-	// Rating and renaming hooks
-	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
-	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
-
 	// Photo actions hook
 	const {
 		handleKeep,
 		handleDiscard,
 		handleUndo,
 		handleRedo,
+		addRenameAction,
 		history,
 		redoStack,
 	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
+
+	// Rating and renaming hooks
+	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
+	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError, addRenameAction);
 
 	// Keyboard shortcuts hook
 	useShortcuts({
