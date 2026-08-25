@@ -38,6 +38,8 @@ export default function ZoomPreviewStrip({
 		window.addEventListener('mouseup', onMouseUp);
 	};
 
+	const scaleFactor = 1.5 * imageZoom; // 1.5x zoom for the strip
+
 	return (
 		<div
 			className="zoom-preview-container"
@@ -48,7 +50,7 @@ export default function ZoomPreviewStrip({
 				ref={zoomPreviewRef}
 				style={{
 					backgroundImage: imageLoaded ? `url(${imageUrl})` : 'none',
-					backgroundSize: `${1.5 * imageZoom * 100}% auto`,
+					backgroundSize: `${scaleFactor * 100}% auto`,
 					backgroundPosition: `${hoverCoords.bgX}% ${hoverCoords.bgY}%`,
 					backgroundRepeat: 'no-repeat',
 				}}
