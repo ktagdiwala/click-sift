@@ -7,8 +7,9 @@ export default function ZoomPreviewStrip({
 	imageZoom = 1,
 	hoverCoords = { x: 50, y: 50, bgX: 50, bgY: 50 },
 	onDimensionsChange,
+	stripDimensions,
 }) {
-	const [stripHeight, setStripHeight] = useState(100);
+	// const [stripHeight, setStripHeight] = useState(100);
 
 	// Notify parent of container size for dynamic lens sizing
 	useEffect(() => {
@@ -16,17 +17,17 @@ export default function ZoomPreviewStrip({
 			const rect = zoomPreviewRef.current.getBoundingClientRect();
 			onDimensionsChange({ width: rect.width, height: rect.height });
 		}
-	}, [stripHeight, zoomPreviewRef, onDimensionsChange]);
+	}, [zoomPreviewRef, onDimensionsChange]);
 
 	const handleResizeMouseDown = (e) => {
 		e.preventDefault();
 		const startY = e.clientY;
-		const startHeight = stripHeight;
+		const startHeight = stripDimensions.height;
 
 		const onMouseMove = (moveEvent) => {
 			const deltaY = moveEvent.clientY - startY;
 			const newHeight = Math.min(Math.max(0, startHeight + deltaY), 800);
-			setStripHeight(newHeight);
+			onDimensionsChange({ width: stripDimensions.width, height: newHeight });
 		};
 
 		const onMouseUp = () => {
@@ -39,11 +40,15 @@ export default function ZoomPreviewStrip({
 	};
 
 	const scaleFactor = 1.5 * imageZoom; // 1.5x zoom for the strip
+	const isHidden = stripDimensions.height === 0;
 
 	return (
 		<div
 			className="zoom-preview-container"
-			style={{ height: `${stripHeight}px` }}
+			style={{ 
+				height: `${stripDimensions.height}px`,
+				display: isHidden ? 'none' : 'flex' // Cleanly hide container when 0px
+			}}
 		>
 			<div
 				className="zoom-preview"

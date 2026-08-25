@@ -39,6 +39,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
 	const [stripDimensions, setStripDimensions] = useState({ width: 300, height: 100 });
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+	const prevStripHeightRef = useRef(100); // Store previous height for restoring after collapse
 
 	// Custom Hooks
 	// State and data hooks
@@ -89,6 +90,30 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
 	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError, addRenameAction);
 
+	const handleToggleFullscreen = useCallback(() => {
+		setSidebarCollapsed((prevSidebar) => {
+			const isCollapsing = !prevSidebar;
+			
+			if (isCollapsing) {
+				// Enter Fullscreen: Save height and set to 0
+				setStripDimensions((prevDimensions) => {
+					if (prevDimensions.height > 0) {
+						prevStripHeightRef.current = prevDimensions.height;
+					}
+					return { ...prevDimensions, height: 0 };
+				});
+			} else {
+				// Exit Fullscreen: Restore height
+				setStripDimensions((prevDimensions) => ({
+					...prevDimensions,
+					height: prevStripHeightRef.current > 0 ? prevStripHeightRef.current : 100,
+				}));
+			}
+	
+			return isCollapsing;
+		});
+	}, []);
+
 	// Keyboard shortcuts hook
 	useShortcuts({
 		onUndo: handleUndo,
@@ -103,7 +128,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		onResetZoom: resetZoom,
 		onOpenRename: () => fileInfoRef.current?.openRename(),
 		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
-	}, [currentIndex, images, history, redoStack]);
+		onToggleFullscreen: handleToggleFullscreen,
+	}, [currentIndex, images, history, redoStack, handleToggleFullscreen]);
 
 	// Current photo and its display path
 	const currentPhoto = images[currentIndex];
@@ -159,6 +185,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					imageZoom={imageZoom}
 					hoverCoords={hoverCoords}
 					onDimensionsChange={setStripDimensions}
+					stripDimensions={stripDimensions}
 				/>
 
 				{/* Main content area */}
@@ -235,6 +262,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									onZoomOut={handleZoomOut}
 									onResetZoom={resetZoom}
 									onToggleKeepZoom={() => setKeepZoomOnNav((prev) => !prev)}
+									onToggleFullscreen={handleToggleFullscreen}
 								/>
 							</>
 						) : (

@@ -36,6 +36,7 @@ export function useShortcuts(handlers, dependencies = []) {
                     handlers.onOpenRename?.();
                     break;
                 case 'l': handlers.onToggleLockZoom?.(); break;
+				case 'f': handlers.onToggleFullscreen?.(); break;
                 default: break;
             }
         };
