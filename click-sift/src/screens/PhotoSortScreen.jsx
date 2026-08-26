@@ -218,7 +218,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 								/>
 
 								{/* Magnifier Target Lens Box (Active only when zoomed out at 1x) */}
-								{isHovering && imageZoom === 1 && imageLoaded && imageElementRef.current && (() => {
+								{isHovering && imageZoom === 1 && (stripDimensions?.height > 0) && imageLoaded && imageElementRef.current && (() => {
 									const imgRect = imageElementRef.current.getBoundingClientRect();
 									const containerRect = imageRef.current?.getBoundingClientRect() || imgRect;
 
