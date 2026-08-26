@@ -42,6 +42,12 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const prevStripHeightRef = useRef(100); // Store previous height for restoring after collapse
 	const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+	const isAnyModalOpen = showConfirmModal || showShortcutsModal;
+
+	const handleCloseActiveModal = () => {
+		if (showConfirmModal) setShowConfirmModal(false);
+		if (showShortcutsModal) setShowShortcutsModal(false);
+	};
 
 	// Custom Hooks
 	// State and data hooks
@@ -118,6 +124,8 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 
 	// Keyboard shortcuts hook
 	useShortcuts({
+		isModalOpen: isAnyModalOpen,
+		onCloseModal: handleCloseActiveModal,
 		onUndo: handleUndo,
 		onRedo: handleRedo,
 		onSetRating: handleSetRating,
@@ -132,7 +140,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
 		onToggleFullscreen: handleToggleFullscreen,
 		onToggleHelp: () => setShowShortcutsModal(prev => !prev),
-	}, [currentIndex, images, history, redoStack, handleToggleFullscreen]);
+	}, [currentIndex, images, history, redoStack, isAnyModalOpen, handleToggleFullscreen]);
 
 	// Current photo and its display path
 	const currentPhoto = images[currentIndex];

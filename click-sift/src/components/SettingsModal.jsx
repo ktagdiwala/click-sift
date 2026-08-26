@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SettingsModal({ isOpen, onClose }) {
     const { theme, setTheme } = useTheme();
+
+	useEffect(() => {
+		const handleKeyDown = (e) => {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				e.stopPropagation(); // Prevents PhotoSortScreen shortcuts from firing
+				onClose?.();
+			}
+		};
+	
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [onClose]);
 
     if (!isOpen) return null;
 
