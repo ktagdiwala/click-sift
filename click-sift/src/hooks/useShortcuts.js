@@ -37,6 +37,7 @@ export function useShortcuts(handlers, dependencies = []) {
                     break;
                 case 'l': handlers.onToggleLockZoom?.(); break;
 				case 'f': handlers.onToggleFullscreen?.(); break;
+				case 'h': handlers.onToggleHelp?.(); break;
                 default: break;
             }
         };

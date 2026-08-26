@@ -78,7 +78,7 @@ const FileInfo = forwardRef(({ currentPhoto, disabled, onRenameSave }, ref) => {
                             </span>
                         )}
                     </div>
-                    {!disabled && <span className="edit-hint">Click to rename (or press R)</span>}
+                    {!disabled && <span className="edit-hint">Click to rename</span>}
                 </div>
             )}
         </div>

@@ -10,6 +10,7 @@ import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
+import ShortcutsHelpModal from '../components/ShortcutsHelpModal';
 
 // Utils
 import { getImageUrl, getFileName } from '../utils/imageUtils';
@@ -40,6 +41,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [stripDimensions, setStripDimensions] = useState({ width: 300, height: 100 });
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const prevStripHeightRef = useRef(100); // Store previous height for restoring after collapse
+	const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
 	// Custom Hooks
 	// State and data hooks
@@ -129,6 +131,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		onOpenRename: () => fileInfoRef.current?.openRename(),
 		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
 		onToggleFullscreen: handleToggleFullscreen,
+		onToggleHelp: () => setShowShortcutsModal(prev => !prev),
 	}, [currentIndex, images, history, redoStack, handleToggleFullscreen]);
 
 	// Current photo and its display path
@@ -369,6 +372,23 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					◀
 				</button>
 			)}
+
+			{/* Floating Help Button */}
+			<button
+				type="button"
+				className="btn-help-trigger"
+				onClick={() => setShowShortcutsModal(true)}
+				title="Keyboard Shortcuts"
+				aria-label="Keyboard Shortcuts"
+			>
+				?
+			</button>
+
+			{/* Shortcuts Modal */}
+			<ShortcutsHelpModal
+				isOpen={showShortcutsModal}
+				onClose={() => setShowShortcutsModal(false)}
+			/>
 
 			{/* Error Message */}
 			{error && error !== 'All photos have been sorted!' && (
