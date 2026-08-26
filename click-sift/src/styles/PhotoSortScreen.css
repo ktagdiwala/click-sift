@@ -54,7 +54,8 @@
 /* Highlight blue on hover/drag so user knows it's interactive */
 .zoom-strip-resize-handle:hover,
 .zoom-strip-resize-handle:active {
-	background-color: #0e639c;
+	background-color: #AEA2FE;
+	/* Fae Purple */
 }
 
 .zoom-preview {
@@ -62,7 +63,8 @@
 	height: 100%;
 	/* background-size: cover;
   background-position: center; */
-	border: 2px solid #0e639c;
+	border: 2px solid #AEA2FE;
+	/* Fae Purple */
 	border-radius: 4px;
 	position: relative;
 	overflow: hidden;
@@ -153,9 +155,9 @@
 
 /* Active state styling when zoom persistence is turned on */
 .zoom-toggle-btn.active {
-	background: #2563eb;
+	background: #AEA2FE; /* Fae Purple */
 	color: #ffffff;
-	border-color: #3b82f6;
+	border-color: #C1C2FF; /* Perfect Periwinkle */
 }
 
 /* Right Sidebar */

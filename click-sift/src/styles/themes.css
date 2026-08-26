@@ -6,7 +6,7 @@
     --text-primary: #ffffff;
     --text-secondary: #b0b0b0;
     --border-color: #333333;
-    --accent-color: #007acc;
+    --accent-color: #C1C2FF; /* Perfect Periwinkle */
 }
 
 [data-theme="light"] {
@@ -16,12 +16,12 @@
     --text-primary: #111111;
     --text-secondary: #555555;
     --border-color: #dddddd;
-    --accent-color: #0066cc;
+    --accent-color: #AEA2FE; /* Fae Purple */
 }
 
 [data-theme="neutral"] {
-    --bg-primary: #e5e7eb;
-    --bg-secondary: #d1d5db;
+    --bg-primary: #939494;
+    --bg-secondary: #b5b8bc;
     --bg-surface: #9ca3af;
     --text-primary: #1f2937;
     --text-secondary: #4b5563;
