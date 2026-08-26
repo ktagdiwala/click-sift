@@ -93,7 +93,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const handleToggleFullscreen = useCallback(() => {
 		setSidebarCollapsed((prevSidebar) => {
 			const isCollapsing = !prevSidebar;
-			
+
 			if (isCollapsing) {
 				// Enter Fullscreen: Save height and set to 0
 				setStripDimensions((prevDimensions) => {
@@ -109,7 +109,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					height: prevStripHeightRef.current > 0 ? prevStripHeightRef.current : 100,
 				}));
 			}
-	
+
 			return isCollapsing;
 		});
 	}, []);
@@ -351,6 +351,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				</div>
 			</div>
 
+			{/* Top Right Progress Overlay (Visible only in Fullscreen/Collapsed mode) */}
+			{sidebarCollapsed && images.length > 0 && (
+				<div className="fullscreen-progress-overlay">
+					<span className="progress-number">{currentIndex + 1}</span>
+					<span className="progress-separator">/</span>
+					<span className="progress-total">{images.length}</span>
+				</div>
+			)}
 			{sidebarCollapsed && (
 				<button
 					className="btn-show-sidebar-floating"
