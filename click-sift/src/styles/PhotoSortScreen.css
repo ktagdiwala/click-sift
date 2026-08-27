@@ -25,10 +25,10 @@
 .zoom-preview-container {
 	position: relative;
 	/* Necessary to anchor the absolute resize handle */
-	padding: 8px 12px 12px 12px;
+	padding: 2px 4px 8px 4px;
 	/* Extra bottom padding for handle spacing */
 	background-color: var(--bg-secondary, #252525);
-	border-bottom: 1px solid var(--border-color, #333);
+	border-bottom: 2px solid var(--border-color, #333);
 	display: flex;
 	gap: 12px;
 	align-items: center;
