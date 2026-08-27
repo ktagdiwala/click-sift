@@ -7,7 +7,7 @@ export default function RatingControls({
 }) {
     return (
         <div className="sidebar-section rating-section">
-            <label className="section-label">Rating (Keys 1-5, 0 to clear)</label>
+            <label className="section-label">Rating</label>
             <div className="star-rating">
                 {[1, 2, 3, 4, 5].map((star) => (
                     <button

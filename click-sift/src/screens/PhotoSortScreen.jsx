@@ -10,6 +10,7 @@ import ActionControls from '../components/ActionControls';
 import Histogram from '../components/Histogram';
 import UndoRedoControls from '../components/UndoRedoControls';
 import ConfirmModal from '../components/ConfirmModal';
+import ShortcutsHelpModal from '../components/ShortcutsHelpModal';
 
 // Utils
 import { getImageUrl, getFileName } from '../utils/imageUtils';
@@ -37,6 +38,16 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const fileInfoRef = useRef(null);
 	const [keepZoomOnNav, setKeepZoomOnNav] = useState(false); // State for toggle setting (default false, meaning zoom resets as normal)
+	const [stripDimensions, setStripDimensions] = useState({ width: 300, height: 100 });
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+	const prevStripHeightRef = useRef(100); // Store previous height for restoring after collapse
+	const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+	const isAnyModalOpen = showConfirmModal || showShortcutsModal;
+
+	const handleCloseActiveModal = () => {
+		if (showConfirmModal) setShowConfirmModal(false);
+		if (showShortcutsModal) setShowShortcutsModal(false);
+	};
 
 	// Custom Hooks
 	// State and data hooks
@@ -51,13 +62,18 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		imageZoom,
 		panX,
 		panY,
+		hoverCoords,
+		lensSize,
+		isHovering,
 		handleZoomIn,
 		handleZoomOut,
 		resetZoom,
 		handleMouseDown,
 		handleMouseMove,
 		handleMouseUp,
-	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded);
+		handleMouseEnter,
+		handleMouseLeave,
+	} = useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDimensions);
 
 	// Photo navigation hook
 	const {
@@ -67,22 +83,49 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		handlePreviousPhoto,
 	} = usePhotoNav(images, keepZoomOnNav, resetZoom, setImageLoaded);
 
-	// Rating and renaming hooks
-	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
-	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError);
-
 	// Photo actions hook
 	const {
 		handleKeep,
 		handleDiscard,
 		handleUndo,
 		handleRedo,
+		addRenameAction,
 		history,
 		redoStack,
 	} = usePhotoActions(config, images, setImages, currentIndex, setCurrentIndex, setError);
 
+	// Rating and renaming hooks
+	const { handleSetRating } = useImageRating(images, setImages, currentIndex, setError);
+	const { handleRenameSave } = useImageRename(images, setImages, currentIndex, setError, addRenameAction);
+
+	const handleToggleFullscreen = useCallback(() => {
+		setSidebarCollapsed((prevSidebar) => {
+			const isCollapsing = !prevSidebar;
+
+			if (isCollapsing) {
+				// Enter Fullscreen: Save height and set to 0
+				setStripDimensions((prevDimensions) => {
+					if (prevDimensions.height > 0) {
+						prevStripHeightRef.current = prevDimensions.height;
+					}
+					return { ...prevDimensions, height: 0 };
+				});
+			} else {
+				// Exit Fullscreen: Restore height
+				setStripDimensions((prevDimensions) => ({
+					...prevDimensions,
+					height: prevStripHeightRef.current > 0 ? prevStripHeightRef.current : 100,
+				}));
+			}
+
+			return isCollapsing;
+		});
+	}, []);
+
 	// Keyboard shortcuts hook
 	useShortcuts({
+		isModalOpen: isAnyModalOpen,
+		onCloseModal: handleCloseActiveModal,
 		onUndo: handleUndo,
 		onRedo: handleRedo,
 		onSetRating: handleSetRating,
@@ -95,7 +138,9 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 		onResetZoom: resetZoom,
 		onOpenRename: () => fileInfoRef.current?.openRename(),
 		onToggleLockZoom: () => setKeepZoomOnNav(prev => !prev),
-	}, [currentIndex, images, history, redoStack]);
+		onToggleFullscreen: handleToggleFullscreen,
+		onToggleHelp: () => setShowShortcutsModal(prev => !prev),
+	}, [currentIndex, images, history, redoStack, isAnyModalOpen, handleToggleFullscreen]);
 
 	// Current photo and its display path
 	const currentPhoto = images[currentIndex];
@@ -148,6 +193,10 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					panX={panX}
 					panY={panY}
 					zoomPreviewRef={zoomPreviewRef}
+					imageZoom={imageZoom}
+					hoverCoords={hoverCoords}
+					onDimensionsChange={setStripDimensions}
+					stripDimensions={stripDimensions}
 				/>
 
 				{/* Main content area */}
@@ -159,8 +208,9 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 						onMouseDown={handleMouseDown}
 						onMouseMove={handleMouseMove}
 						onMouseUp={handleMouseUp}
-						onMouseLeave={handleMouseUp}
-						style={{ cursor: imageZoom > 1 ? 'grab' : 'default' }}
+						onMouseLeave={handleMouseLeave}
+						onMouseEnter={handleMouseEnter}
+						style={{ cursor: imageZoom > 1 ? 'grab' : 'crosshair' }}
 					>
 						{images.length > 0 ? (
 							<>
@@ -173,10 +223,45 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									onError={handleImageError}
 									style={{
 										transform: `translate(${panX}px, ${panY}px) scale(${imageZoom})`,
-										cursor: imageZoom > 1 ? 'grabbing' : 'default',
+										cursor: imageZoom > 1 ? 'grabbing' : 'crosshair',
 										pointerEvents: 'none' // Prevents browser native image-ghosting drag
 									}}
 								/>
+
+								{/* Magnifier Target Lens Box (Active only when zoomed out at 1x) */}
+								{isHovering && imageZoom === 1 && (stripDimensions?.height > 0) && imageLoaded && imageElementRef.current && (() => {
+									const imgRect = imageElementRef.current.getBoundingClientRect();
+									const containerRect = imageRef.current?.getBoundingClientRect() || imgRect;
+
+									// Calculate offset of image within container
+									const imgLeftOffset = imgRect.left - containerRect.left;
+									const imgTopOffset = imgRect.top - containerRect.top;
+
+									const lensWidthPx = (lensSize.widthPercent / 100) * imgRect.width;
+									const lensHeightPx = (lensSize.heightPercent / 100) * imgRect.height;
+
+									const lensCenterX = imgLeftOffset + (hoverCoords.x / 100) * imgRect.width;
+									const lensCenterY = imgTopOffset + (hoverCoords.y / 100) * imgRect.height;
+
+									return (
+										<div
+											className="magnifier-lens"
+											style={{
+												position: 'absolute',
+												top: `${lensCenterY}px`,
+												left: `${lensCenterX}px`,
+												width: `${lensWidthPx}px`,
+												height: `${lensHeightPx}px`,
+												transform: 'translate(-50%, -50%)',
+												border: '2px solid rgba(255, 255, 255, 0.85)',
+												boxShadow: '0 0 8px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(0, 0, 0, 0.3)',
+												borderRadius: '4px',
+												pointerEvents: 'none',
+												backgroundColor: 'rgba(255, 255, 255, 0.12)',
+											}}
+										/>
+									);
+								})()}
 
 								{/* Zoom Controls */}
 								<ZoomControls
@@ -188,6 +273,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 									onZoomOut={handleZoomOut}
 									onResetZoom={resetZoom}
 									onToggleKeepZoom={() => setKeepZoomOnNav((prev) => !prev)}
+									onToggleFullscreen={handleToggleFullscreen}
 								/>
 							</>
 						) : (
@@ -207,7 +293,7 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 			</div>
 
 			{/* Right Sidebar */}
-			<div className="right-sidebar">
+			<div className={`right-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
 				{/* File Info Section */}
 				<FileInfo
 					ref={fileInfoRef}
@@ -259,6 +345,14 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 				{/* Back to Setup Section */}
 				<div className="sidebar-section back-section">
 					<button
+						className="btn-toggle-sidebar"
+						onClick={() => setSidebarCollapsed(true)}
+						title="Hide Sidebar"
+						aria-label="Hide Sidebar"
+					>
+						▶
+					</button>
+					<button
 						className="btn btn-back"
 						onClick={(e) => handleBackToSetup(e)}
 						title="Return to setup screen"
@@ -267,6 +361,42 @@ export default function PhotoSortScreen({ config, onBackToSetup }) {
 					</button>
 				</div>
 			</div>
+
+			{/* Top Right Progress Overlay (Visible only in Fullscreen/Collapsed mode) */}
+			{sidebarCollapsed && images.length > 0 && (
+				<div className="fullscreen-progress-overlay">
+					<span className="progress-number">{currentIndex + 1}</span>
+					<span className="progress-separator">/</span>
+					<span className="progress-total">{images.length}</span>
+				</div>
+			)}
+			{sidebarCollapsed && (
+				<button
+					className="btn-show-sidebar-floating"
+					onClick={() => setSidebarCollapsed(false)}
+					title="Show Sidebar"
+					aria-label="Show Sidebar"
+				>
+					◀
+				</button>
+			)}
+
+			{/* Floating Help Button */}
+			<button
+				type="button"
+				className="btn-help-trigger"
+				onClick={() => setShowShortcutsModal(true)}
+				title="Keyboard Shortcuts"
+				aria-label="Keyboard Shortcuts"
+			>
+				?
+			</button>
+
+			{/* Shortcuts Modal */}
+			<ShortcutsHelpModal
+				isOpen={showShortcutsModal}
+				onClose={() => setShowShortcutsModal(false)}
+			/>
 
 			{/* Error Message */}
 			{error && error !== 'All photos have been sorted!' && (

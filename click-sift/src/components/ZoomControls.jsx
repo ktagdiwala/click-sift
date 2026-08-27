@@ -9,6 +9,7 @@ export default function ZoomControls({
     onZoomOut,
     onResetZoom,
     onToggleKeepZoom,
+	onToggleFullscreen,
 }) {
     return (
         <div className="zoom-controls">
@@ -39,6 +40,16 @@ export default function ZoomControls({
                 }
             >
                 {keepZoomOnNav ? '🔒' : '🔓'}
+            </button>
+
+			{/* Fullscreen Toggle Button */}
+            <button
+                type="button"
+                className="zoom-toggle-btn"
+                onClick={onToggleFullscreen}
+                title="Toggle Fullscreen Mode (F key)"
+            >
+                ⛶
             </button>
         </div>
     );

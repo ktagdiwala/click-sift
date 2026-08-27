@@ -4,6 +4,7 @@
 mod commands;
 use commands::*;
 use std::fs;
+use tauri::Manager;
 
 #[tauri::command]
 fn read_image_bytes(file_path: String) -> Result<Vec<u8>, String> {
@@ -12,7 +13,16 @@ fn read_image_bytes(file_path: String) -> Result<Vec<u8>, String> {
 
 fn main() {
     tauri::Builder::default()
-		.plugin(tauri_plugin_dialog::init()) // <-- ADD THIS LINE HERE
+		.plugin(tauri_plugin_dialog::init())
+		.setup(|app| {
+            // Apply the default window icon configured in tauri.conf.json
+            if let Some(icon) = app.default_window_icon() {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_icon(icon.clone());
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             validate_directory,
             create_directories,

@@ -1,49 +1,49 @@
 .directory-selector {
-  display: flex;
-  flex-direction: column;
+	display: flex;
+	flex-direction: column;
 }
 
 .selector-input-group {
-  display: flex;
-  gap: 8px;
+	display: flex;
+	gap: 8px;
 }
 
 .selector-input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: 'Courier New', monospace;
-  background-color: #fafafa;
-  color: #333;
-  word-break: break-all;
+	flex: 1;
+	padding: 10px 12px;
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: 6px;
+	font-size: 14px;
+	font-family: 'Courier New', monospace;
+	background-color: var(--bg-primary, #fafafa);
+	color: var(--text-primary, #333);
+	word-break: break-all;
 }
 
 .selector-input:focus {
-  outline: none;
-  border-color: #667eea;
-  background-color: white;
+	outline: none;
+	border-color: var(--accent-color, #AEA2FE);
+	background-color: var(--bg-secondary, #ffffff);
 }
 
 .btn-browse {
-  padding: 10px 16px;
-  background-color: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+	padding: 10px 16px;
+	background-color: #AEA2FE;	/* Fae Purple */
+	color: white;
+	border: none;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+	white-space: nowrap;
 }
 
 .btn-browse:hover {
-  background-color: #5568d3;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	background-color: #9B8DFE;
+	box-shadow: 0 4px 12px rgba(174, 162, 254, 0.4);
 }
 
 .btn-browse:active {
-  transform: translateY(1px);
+	transform: translateY(1px);
 }

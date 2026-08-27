@@ -97,8 +97,7 @@ export default function SetupScreen({ onComplete }) {
   return (
     <div className="setup-screen">
       <div className="setup-container">
-        <h1>Photo Sorter Setup</h1>
-        <p className="subtitle">Configure where your photos are located</p>
+        <h1>Click Sift Setup</h1>
 
         <div className="setup-form">
           <div className="form-section">
@@ -109,7 +108,7 @@ export default function SetupScreen({ onComplete }) {
             <DirectorySelector
               value={targetDir}
               onChange={handleTargetDirSelect}
-              placeholder="Click to select folder..."
+              placeholder="File path to target directory..."
             />
           </div>
 
