@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
-        run: npm install # or 'npm install' if package-lock.json isn't committed
+        run: npm install # Install frontend dependencies since package.json is not committed to the repo
 
       - name: Build Tauri App & Publish Release
         uses: tauri-apps/tauri-action@v0
