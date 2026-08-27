@@ -3,7 +3,7 @@ name: Release App
 on:
   push:
     tags:
-      - 'v*' # Triggers workflow when you push a tag like v1.0.0
+      - 'v*'
 
 jobs:
   release:
@@ -13,11 +13,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'ubuntu-22.04' # Generates .deb & .AppImage for Linux
+          - platform: 'ubuntu-22.04'
             args: ''
-          - platform: 'macos-latest' # Generates .dmg for macOS
+          - platform: 'macos-latest'
             args: ''
-          - platform: 'windows-latest' # Generates .msi & .exe for Windows
+          - platform: 'windows-latest'
             args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -32,7 +32,6 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      # Linux dependencies required for Tauri v2 webview rendering
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -40,7 +39,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
-        run: npm install # Install frontend dependencies since package.json is not committed to the repo
+        working-directory: ./click-sift
+        run: npm install
 
       - name: Build Tauri App & Publish Release
         uses: tauri-apps/tauri-action@v0
@@ -52,3 +52,4 @@ jobs:
           releaseBody: 'See assets below to download the installer for your OS.'
           releaseDraft: true
           prerelease: false
+          projectPath: './click-sift'
