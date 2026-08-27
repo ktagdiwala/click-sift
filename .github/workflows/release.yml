@@ -1,0 +1,54 @@
+name: Release App
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers workflow when you push a tag like v1.0.0
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'ubuntu-22.04' # Generates .deb & .AppImage for Linux
+            args: ''
+          - platform: 'macos-latest' # Generates .dmg for macOS
+            args: ''
+          - platform: 'windows-latest' # Generates .msi & .exe for Windows
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Linux dependencies required for Tauri v2 webview rendering
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Frontend Dependencies
+        run: npm ci # or 'npm install' if package-lock.json isn't committed
+
+      - name: Build Tauri App & Publish Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'ClickSift ${{ github.ref_name }}'
+          releaseBody: 'See assets below to download the installer for your OS.'
+          releaseDraft: true
+          prerelease: false
