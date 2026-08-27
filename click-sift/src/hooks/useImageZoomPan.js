@@ -64,20 +64,6 @@ export function useImageZoomPan(imageRef, imageElementRef, imageLoaded, stripDim
 			const xRatio = Math.max(0, Math.min(1, mouseX / rect.width));
 			const yRatio = Math.max(0, Math.min(1, mouseY / rect.height));
 
-
-			// 1. Calculate how large the background image is rendered inside ZoomStrip (1.5x strip width)
-			// const ZOOM_FACTOR = 1.5; // The ZoomStrip renders the image at 1.5x its width
-			// const bgWidthPx = stripDimensions.width * ZOOM_FACTOR;
-
-			// // 2. Compute the exact fraction of the original photo that fits across stripDimensions.width
-			// const visibleWidthFraction = stripDimensions.width / bgWidthPx; // exactly 1 / ZOOM_FACTOR
-
-			// // 3. Compute Lens Width percentage relative to the rendered image
-			// const lWidth = Math.min(100, (visibleWidthFraction * rect.width / rect.width) * 100);
-
-			// // 4. Compute Lens Height percentage maintaining exact aspect ratio of the ZoomStrip
-			// const lHeight = Math.min(100, (stripDimensions.height / bgWidthPx) * (rect.width / rect.height) * 100);
-
 			// 1. Zoom factor matching ZoomStrip's 1.5x width scaling
 			const ZOOM_FACTOR = 1.5;
 
